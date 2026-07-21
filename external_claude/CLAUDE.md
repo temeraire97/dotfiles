@@ -79,4 +79,4 @@ User types `/graphify` → invoke Skill tool with `skill: "graphify"` before any
 - **Parallel dispatch — dispatch all at once:** Agent/Task N개 보낼 때 4-5개씩 나눠 보내다 후반 누락 반복 발생 → 한 메시지에 전부 호출. 분할 불가피하면 "이번 N개 / 남은 M개" 명시 추적.
 - **Caveman/terse 모드 — 도구 호출 구조는 압축 금지:** prose/텍스트 응답만 terse 적용; 도구 호출 XML, 코드, 커밋 메시지, PR 본문은 항상 완전한 형식 유지.
 - **CSS 단위 무조건 rem:** 사용자가 px로 말해도 코드엔 rem 환산 (÷16, 예: 800px→50rem); vw/vh/% 는 그대로 유지.
-- **Worktree 무조건:** 신규 브랜치 작업은 `git worktree add -b <branch> ../<repo>-<topic> main`; 메인 체크아웃에 직접 브랜치+편집 금지.
+- **Worktree 무조건:** 신규 브랜치 작업은 `git worktree add -b <branch> ../<repo>-<topic> main`; 메인 체크아웃에 직접 브랜치+편집 금지.# rehearsal 1784616768
