@@ -1,0 +1,13 @@
+# path 배열을 unique로 선언 — 이후 어디서 prepend하든 중복 항목이 자동 제거된다.
+typeset -U path PATH
+
+# ~/.zshenv — 모든 zsh 호출(인터랙티브/비인터랙티브)에서 읽힘.
+#
+# fnm의 default alias bin을 PATH에 넣어 스크립트·hook·launchd 같은
+# 비인터랙티브 컨텍스트에서도 node를 찾을 수 있게 한다.
+# 디렉터리별 자동 버전 전환은 .zshrc의 `fnm env --use-on-cd`가 담당하며,
+# 그쪽이 나중에 실행돼 multishell shim을 앞에 붙이므로 우선순위는 유지된다.
+
+FNM_DEFAULT_BIN="$HOME/.local/share/fnm/aliases/default/bin"
+[ -d "$FNM_DEFAULT_BIN" ] && export PATH="$FNM_DEFAULT_BIN:$PATH"
+unset FNM_DEFAULT_BIN

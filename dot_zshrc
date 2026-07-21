@@ -1,0 +1,34 @@
+# --- PATH ---
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+
+# --- zsh-autosuggestions (히스토리 기반, → 로 수락) ---
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# --- Command history 설정 ---
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY           # 여러 창이 히스토리 공유
+setopt HIST_IGNORE_ALL_DUPS    # 중복 명령 제거
+setopt HIST_IGNORE_SPACE       # 공백으로 시작하면 기록 안 함
+setopt HIST_REDUCE_BLANKS
+setopt APPEND_HISTORY
+
+# --- fnm (node 버전 관리, .node-version/.nvmrc 감지해 자동 전환) ---
+eval "$(fnm env --use-on-cd --shell zsh)"
+
+# --- zoxide (z 점프) ---
+eval "$(zoxide init zsh)"
+
+# --- Starship 프롬프트 ---
+eval "$(starship init zsh)"
+
+# --- fast-syntax-highlighting (반드시 맨 마지막!) ---
+source /opt/homebrew/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
+
+# mkcd: 폴더 만들고 바로 들어가기
+mkcd() { mkdir -p "$@" && cd "${@:$#}"; }
+
+# ll: 상세 목록
+alias ll='ls -lah'
