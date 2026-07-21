@@ -1,0 +1,6 @@
+#!/bin/bash
+set -uo pipefail
+command -v nvim >/dev/null || exit 0
+# restore = lazy-lock.json 준수 설치. sync는 install+update+clean으로 lockfile을 "재작성"해
+#   방금 캡처·커밋한 lock을 S5 apply 직후 즉시 갱신 — lockfile 기준 재현이 목적이므로 restore가 정확
+nvim --headless "+Lazy! restore" +qa || echo "WARN: Lazy restore 실패 — 이후 nvim에서 수동 :Lazy restore" >&2

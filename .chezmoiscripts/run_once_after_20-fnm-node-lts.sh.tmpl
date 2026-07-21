@@ -1,0 +1,10 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+set -euo pipefail
+command -v fnm >/dev/null || exit 0
+corepack disable 2>/dev/null || true      # pnpm=brew 정책을 검사가 아닌 강제로
+fnm ls | grep -q default && exit 0        # 기존 머신 무간섭: default 별칭 존재 시 무조건 no-op
+fnm install --lts
+fnm default lts-latest
+"$HOME/.local/bin/node" -v                # symlink_node가 dangling이 아님을 확인
+{{ end -}}

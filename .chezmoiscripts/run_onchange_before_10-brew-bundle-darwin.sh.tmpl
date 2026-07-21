@@ -1,0 +1,7 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+set -euo pipefail
+# Brewfile hash: {{ include "Brewfile" | sha256sum }}   # 해시 주석 = onchange 트리거
+brew bundle --file="{{ .chezmoi.sourceDir }}/Brewfile"
+[ "$(command -v pnpm)" = "/opt/homebrew/bin/pnpm" ] || echo "WARN: pnpm이 brew 설치본이 아님 — corepack shim 의심" >&2
+{{ end -}}

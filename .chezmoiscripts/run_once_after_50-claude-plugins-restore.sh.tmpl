@@ -1,0 +1,6 @@
+#!/bin/bash
+set -uo pipefail
+command -v claude >/dev/null || exit 0
+S="{{ .chezmoi.sourceDir }}/external_claude/settings.json"
+jq -r '.extraKnownMarketplaces // {} | to_entries[] | .value.source.repo' "$S" | while read -r r; do claude plugins marketplace add "$r" || true; done
+jq -r '.enabledPlugins // {} | to_entries[] | select(.value==true) | .key' "$S" | while read -r p; do claude plugins install "$p" || true; done
