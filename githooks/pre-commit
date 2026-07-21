@@ -9,7 +9,7 @@ else
 fi
 # 게이트 2: /Users/ 하드코딩 가드 — [B6] chezmoi 구조 파일 한정(페이로드 제외: 백업 인질화 방지)
 if [ "${ALLOW_USERS_PATH:-0}" != "1" ]; then
-  if git diff --cached -- '*.tmpl' '.chezmoiscripts' 'scripts' 'githooks' 'Library' | grep -qE '^\+.*/Users/[a-z]+'; then
+  if git diff --cached -- '*.tmpl' '.chezmoiscripts' 'scripts' 'githooks' 'private_Library' | grep -qE '^\+.*/Users/[a-z]+'; then
     echo "BLOCK: 구조 파일에 홈 절대경로 — {{ .chezmoi.homeDir }} 템플릿 사용 (의도적 예외: ALLOW_USERS_PATH=1)"; exit 1
   fi
 fi
