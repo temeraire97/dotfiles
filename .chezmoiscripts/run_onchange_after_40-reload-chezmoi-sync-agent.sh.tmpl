@@ -1,0 +1,8 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# plist hash: {{ include "Library/LaunchAgents/com.user.chezmoi-sync.plist.tmpl" | sha256sum }}
+# sourceDir: {{ .chezmoi.sourceDir }}   # [B2] sourceDir 이동 시 렌더 결과가 변해 자동 재발화
+LABEL="com.user.chezmoi-sync"; PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"; DOMAIN="gui/$(id -u)"
+launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+launchctl bootstrap "$DOMAIN" "$PLIST"
+{{ end -}}
