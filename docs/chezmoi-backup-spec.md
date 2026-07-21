@@ -450,7 +450,7 @@ v1의 BLOCK 6·WARN 12·INFO 8이 v2에서 어떤 상태인지. **소멸은 반�
 | B6 | 유지 | `/Users/` 가드 구조 파일 한정, nightly [9] commit rc 검사+알림, `ALLOW_USERS_PATH=1` 탈출구 |
 | W1 | 유지 | S1 bootout+**disable**(override DB, 재부팅 영속) 2단, `print-disabled` 검증, 롤백 `enable` 복원 |
 | W2 | **소멸(사유: divergence 창 자체 제거)** | 구 repo→소스 rsync 2회+창 닫기 구조가 라이브 홈 1회 캡처로 대체되어 스냅샷↔전환 사이 창이 없음. 잔여 조치(pgrep 세션 종료 게이트, 롤백의 조건부 회수-우선)는 S4·6장에 승계 |
-| W3 | 유지 | 실측 검출 픽스처 `AKIAIRB4Q2NPZ7XKQM5T` <!-- gitleaks:allow -->, 양성/음성 대조군, 픽스처 즉시 삭제 (S3) |
+| W3 | 유지 | 실측 검출 확인된 임의 AKIA 픽스처(allowlist 밖 값 사용 — 실제 값은 재현 시 임의 생성), 양성/음성 대조군, 픽스처 즉시 삭제 (S3) |
 | W4 | 유지 | nightly [9] commit rc 검사+알림+exit 1, gitleaks 미설치 fail-closed |
 | W5 | 유지 | 모든 롤백에서 `chezmoi forget --force` 선행 — 재탈취 봉쇄 (6장) |
 | W6 | 유지 | add.secrets 방어 산정 제외·선언 유지·리허설은 "발동 여부 기록"(S3), 업그레이드 후 재검증 규칙(9장) |
@@ -526,10 +526,10 @@ v1의 BLOCK 6·WARN 12·INFO 8이 v2에서 어떤 상태인지. **소멸은 반�
   (v1의 임시 안전벨트 2줄은 폐지 — 2.2 사유. 최종본을 처음부터 사용.)
 - 검증 (게이트 리허설 5종 — v1 P1-2 승계):
   1. `chezmoi --version`; `chezmoi doctor`에 FAILED 없음; `git -C $SRC rev-parse --git-dir` → `.git`.
-  2. **양성 대조군(pre-commit 시크릿)**: `echo 'aws_access_key_id=AKIAIRB4Q2NPZ7XKQM5T' > $SRC/.leaktest; git -C $SRC add .leaktest; git -C $SRC commit -m "test(gate): 차단 확인"` <!-- gitleaks:allow --> → **차단(exit≠0)** → `git -C $SRC reset && rm $SRC/.leaktest` (픽스처 즉시 삭제 필수).
+  2. **양성 대조군(pre-commit 시크릿)**: `echo 'aws_access_key_id=AKIA################' > $SRC/.leaktest; git -C $SRC add .leaktest; git -C $SRC commit -m "test(gate): 차단 확인"` → **차단(exit≠0)** → `git -C $SRC reset && rm $SRC/.leaktest` (픽스처 즉시 삭제 필수. 픽스처는 재현 시 임의의 유효 형식 AKIA 값으로 생성 — gitleaks allowlist에 없는 값이어야 함).
   3. **양성 대조군(/Users/ 가드)**: `echo '/Users/hyunsoo/x' > $SRC/gate-test.tmpl` → add·commit 시도 → 차단 확인 → reset+삭제 (가드는 구조 파일 한정 — 반드시 `.tmpl`로 테스트).
   4. **음성 대조군**: 무해 파일 1개 커밋 통과 확인.
-  5. **add.secrets 발동 기록**: `echo 'aws_access_key_id=AKIAIRB4Q2NPZ7XKQM5T' > ~/.fake-secret; chezmoi add ~/.fake-secret` <!-- gitleaks:allow --> → 발동 여부 **기록만**(v2.71.1 미발동이 정상) → `chezmoi forget --force ~/.fake-secret 2>/dev/null; rm -f $SRC/dot_fake-secret ~/.fake-secret` (커밋 전 완전 삭제 — 히스토리 오염 금지).
+  5. **add.secrets 발동 기록**: `echo 'aws_access_key_id=AKIA################' > ~/.fake-secret; chezmoi add ~/.fake-secret` → 발동 여부 **기록만**(v2.71.1 미발동이 정상) → `chezmoi forget --force ~/.fake-secret 2>/dev/null; rm -f $SRC/dot_fake-secret ~/.fake-secret` (커밋 전 완전 삭제 — 히스토리 오염 금지).
 - 롤백: `rm -rf ~/.local/share/chezmoi ~/.config/chezmoi`; `brew uninstall chezmoi` — 시스템 무변경.
 
 **[S4] 라이브 캡처 + 소스 완성** ★ 리프레임의 핵심 — 구 repo가 아닌 **현재 홈**에서 1회 캡처
