@@ -1,0 +1,20 @@
+#!/bin/bash
+# 게이트 1: gitleaks — rc 분기 ([W11] 툴 오류를 시크릿으로 오진 금지, fail-closed 유지)
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --no-banner --redact; rc=$?
+  if   [ "$rc" -eq 1 ]; then echo "BLOCK: 시크릿 감지"; exit 1
+  elif [ "$rc" -ne 0 ]; then echo "BLOCK: gitleaks 오류 rc=$rc — 스캔 불가(설정/버전 확인)"; exit 1; fi
+else
+  echo "BLOCK: gitleaks 미설치 — public repo 커밋 불가 (brew install gitleaks)"; exit 1
+fi
+# 게이트 2: /Users/ 하드코딩 가드 — [B6] chezmoi 구조 파일 한정(페이로드 제외: 백업 인질화 방지)
+if [ "${ALLOW_USERS_PATH:-0}" != "1" ]; then
+  if git diff --cached -- '*.tmpl' '.chezmoiscripts' 'scripts' 'githooks' 'Library' | grep -qE '^\+.*/Users/[a-z]+'; then
+    echo "BLOCK: 구조 파일에 홈 절대경로 — {{ .chezmoi.homeDir }} 템플릿 사용 (의도적 예외: ALLOW_USERS_PATH=1)"; exit 1
+  fi
+fi
+# 게이트 3: 기밀 경로 패턴 — [B3] .gitignore 우회(강제 add 등) 대비 이중화
+if git diff --cached --name-only | grep -qE '(^|/)memory/|\.local\.(md|json)$|(^|/)history\.jsonl$'; then
+  echo "BLOCK: 기밀 패턴 경로가 staged됨"; exit 1
+fi
+exit 0

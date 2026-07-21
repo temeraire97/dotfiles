@@ -1,0 +1,30 @@
+# 심링크 페이로드 표면 방어 — 세션이 skills/ 하위에 새로 만드는 기밀 차단
+memory/               # [B3] 전 깊이 패턴 (*/memory/는 1단계만 매치 — 실증)
+*.local.md
+*.local.json
+.env
+.env.*
+*credentials*
+*.secret
+mcp.json
+*.log
+.DS_Store
+*.backup.*
+
+# ★ external_nvim 런타임·테스트 산출물 — 구 nvim-settings .gitignore 병합
+#   (경로 한정 스코프: 무슬래시 패턴의 전 리포 오발 차단 + doc/tags의 앵커링 보존)
+external_nvim/tt.*
+external_nvim/.tests
+external_nvim/doc/tags
+external_nvim/debug
+external_nvim/.repro
+external_nvim/foo.*
+external_nvim/data
+
+# 기밀 미러 [W10] — chezmoi ignore 의미론 변동/수동 add 실수 대비
+**/history.jsonl
+**/sessions/
+private_dot_claude/projects/
+private_dot_claude/plugins/
+dot_claude/
+.claude.json

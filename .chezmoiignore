@@ -1,0 +1,50 @@
+# ===== [1] 소스 헬퍼 — 홈 배포 대상 아님 =====
+README.md
+Brewfile
+claude                # external_claude/의 타깃명. 심링크 착지점일 뿐 — ~/claude 생성 금지
+claude/**             # 페이로드 내용을 타깃 상태에서 제외 (externally-modified 패턴의 핵심)
+nvim                  # ★ external_nvim/의 타깃명 — ~/nvim 생성 금지 (claude와 동일 메커니즘)
+nvim/**
+scripts
+scripts/**
+githooks
+githooks/**
+
+# ===== [2] 기밀·런타임 — chezmoi add/re-add/status 가시권에서 구조적 제거 =====
+projects/**                      # ~/projects = 클라이언트 저장소. add 실수 원천 차단
+.claude.json                     # [W7] 클라이언트 경로·exampleFiles 포함 48KB
+.claude.json.backup*
+.claude/projects/**              # 클라이언트 기밀 대화/메모리 — 절대 금지
+.claude/sessions/**
+.claude/history.jsonl
+.claude/**/memory/**
+.claude/**/*.local.md
+.claude/**/*.local.json
+.claude/mcp.json
+.claude/plugins/**
+.claude/cache/**
+.claude/chrome/**
+.claude/downloads/**
+.claude/file-history/**
+.claude/session-env/**
+.claude/shell-snapshots/**
+.claude/backups/**
+.claude/tasks/**
+.claude/teams/**
+.claude/context-mode/**
+.claude/.caveman-active
+.claude/.last-cleanup
+.claude/mcp-needs-auth-cache.json
+.claude/*.backup.*
+.claude/*.log
+.config/nvim/**                  # ★ 심링크 내용은 external_nvim 페이로드 소관 — 타깃 상태 밖 (심링크 자체는 관리)
+.zshrc.local                     # [W9] 시크릿 격리 관례 파일 — 의도적 미백업
+.zshenv.local
+
+# ===== [3] 일반 오염 방지 =====
+**/.DS_Store
+**/*.log
+.env
+.env.*
+**/*credentials*
+**/*.secret
