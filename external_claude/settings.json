@@ -21,7 +21,6 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "claude-fable-5[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -190,8 +189,8 @@
   "effortLevel": "high",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
   "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
   "autoInstallEnabledPlugins": true
 }

@@ -32,3 +32,6 @@ mkcd() { mkdir -p "$@" && cd "${@:$#}"; }
 
 # ll: 상세 목록
 alias ll='ls -lah'
+
+# Claude Code 회사 계정 프로필 (인증만 분리, 설정은 ~/.claude 와 공유)
+alias claude-work='CLAUDE_CONFIG_DIR=$HOME/.claude-work claude'
