@@ -35,3 +35,19 @@ alias ll='ls -lah'
 
 # Claude Code 회사 계정 프로필 (인증만 분리, 설정은 ~/.claude 와 공유)
 alias claude-work='CLAUDE_CONFIG_DIR=$HOME/.claude-work claude'
+
+# --- Figma PAT (keychain 보관, 평문 미기록) ---
+# 등록/갱신(90일 만료): security add-generic-password -U -s "Figma PAT" -a figma -w '<figd_토큰>'
+export FIGMA_TOKEN="$(security find-generic-password -s 'Figma PAT' -a figma -w 2>/dev/null)"
+
+# figma-token: 토큰 재등록 직후 현재 셸에 다시 로드
+figma-token() {
+  export FIGMA_TOKEN="$(security find-generic-password -s 'Figma PAT' -a figma -w)"
+}
+
+# figma-devstatus <fileKey>: 파일 내 Ready for dev / Completed 마킹 노드 목록 (REST devStatus)
+figma-devstatus() {
+  curl -s -H "X-Figma-Token: $FIGMA_TOKEN" \
+    "https://api.figma.com/v1/files/${1:?fileKey 필요}?depth=3" \
+    | jq '[.. | objects | select(.devStatus != null) | {id, name, status: .devStatus.type}]'
+}
