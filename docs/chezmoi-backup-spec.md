@@ -1,7 +1,7 @@
-# chezmoi 첫 백업 명세서 v2 (현재 머신 설정 · 모델 b 동기화)
+# chezmoi 첫 백업 명세서 v3 (현재 머신 설정 · 모델 b 동기화)
 
-작성일: 2026-07-21 · 대상 머신: macOS arm64 (Darwin 25.4.0), 사용자 `hyunsoo`, brew=/opt/homebrew
-전판: v1 "chezmoi 이관 최종 명세서" (safety-first · 공격검증 반영판). 본 v2는 사용자 승인 결정 4건을 반영한 전면 개정판이며, v1에서 실증된 게이트·수치·명령은 모델 변경에 따른 필연 수정 외 그대로 승계한다.
+작성일: 2026-07-21 · 개정일: 2026-07-29 · 대상 머신: macOS arm64 (Darwin 25.4.0), 사용자 `hyunsoo`, brew=/opt/homebrew
+전판: v1 "chezmoi 이관 최종 명세서" (safety-first · 공격검증 반영판) → v2 (사용자 승인 결정 4건 반영 전면 개정판). v2는 v1에서 실증된 게이트·수치·명령을 모델 변경에 따른 필연 수정 외 그대로 승계했고, 본 v3는 그 v2에 2026-07-28 실증된 `~/.claude/settings.json` 심링크 파손([B5])의 자가치유 확장(3.1·6장)과 그에 딸린 인용 전문 재동기화(2.2 `.chezmoiignore`, 2.5 `nightly-sync.sh`)만 얹은 국소 개정판이다 — 구조·절 번호·결정 4건은 v2 그대로다.
 
 ---
 
@@ -96,6 +96,8 @@ scripts
 scripts/**
 githooks
 githooks/**
+docs                  # 소스 전용 참조 문서(백업 스펙) — 홈 배포 금지, ~/docs 생성 금지
+docs/**
 
 # ===== [2] 기밀·런타임 — chezmoi add/re-add/status 가시권에서 구조적 제거 =====
 projects/**                      # ~/projects = 클라이언트 저장소. add 실수 원천 차단
@@ -121,6 +123,7 @@ projects/**                      # ~/projects = 클라이언트 저장소. add �
 .claude/context-mode/**
 .claude/.caveman-active
 .claude/.last-cleanup
+.claude/.last-update-result.json # Claude Code 자동 업데이트 결과 캐시 — 런타임 노이즈, 복원 가치 없음
 .claude/mcp-needs-auth-cache.json
 .claude/*.backup.*
 .claude/*.log
@@ -280,7 +283,7 @@ fi
 exit 0
 ```
 
-**`scripts/nightly-sync.sh`** ★ 모델 b 전면 재작성 — launchd 17:00 실행체. **커밋까지만, push 없음.** apply 절대 금지.
+**`scripts/nightly-sync.sh`** ★ 모델 b 전면 재작성 — launchd 17:00 실행체. **커밋까지만, push 없음.** 맨 apply 금지 — v3에서 블록 [2]의 `settings.json` 심링크 자가치유 1건만 **경로 한정 + `--force`(캡처 rc 게이트 뒤)** 예외(3.1).
 ```bash
 #!/bin/bash
 set -uo pipefail
@@ -310,11 +313,36 @@ command -v gitleaks >/dev/null || { notify "gitleaks 미설치 — 백업 중단
 
 # [2] 심링크 무결성 assert + 파손 시 fallback 캡처 — [B5] claude 6개 + ★nvim 1개
 BROKEN=0
+HEALED=0
+CAPTURED=1   # 기본 실패값 — 캡처 확인 전엔 apply 금지
 for f in CLAUDE.md settings.json statusline-wrapper.sh skills agents hooks; do
   if [ ! -L "$HOME/.claude/$f" ] || [ "$(readlink "$HOME/.claude/$f")" != "$SRC/external_claude/$f" ]; then
-    BROKEN=1
+    # 캡처 먼저 — 순서 역전 절대 금지 (아래 apply 주석 참조)
     rsync -aL --exclude 'memory/' --exclude '*.local.md' --exclude '*.local.json' \
           --exclude '*.log' --exclude '.DS_Store' "$HOME/.claude/$f" "$SRC/external_claude/" 2>/dev/null
+    CAPTURED=$?   # rsync rc 즉시 포획 — 이 머신은 openrsync(protocol 29). dangling 심링크 소스·읽기전용 대상에서
+                  # rc=23이며 아무것도 안 옮기거나 stale 내용을 그대로 둠. 아래 apply의 전제 조건으로 필수.
+    if [ "$f" = "settings.json" ]; then
+      # settings.json만 자가치유 — Claude Code가 영속 설정 저장(기본 모델 변경·/config·플러그인 설치) 시
+      # temp+rename으로 심링크를 실파일로 갈아치움. 정상 동작이라 재발 확정 → 사람 호출 대신 자동 복구.
+      # 나머지 6개(+nvim)는 깨질 이유가 없음 → 파손이면 진짜 이상. 전부 자동 치유하면 그 신호를 덮음 → BROKEN=1 유지.
+      # 순서: 위 rsync 캡처 → 여기 apply. 역전 시 apply가 실파일을 지우고 stale 소스 심링크로 대체 → 당일 변경(예: 새 모델값) 소실.
+      # 같은 이유로 CAPTURED -eq 0 이 apply의 전제 — 캡처 실패 상태에서 --force로 밀면 그 소실이 그대로 실현됨.
+      # 경로 한정 필수 — 맨 chezmoi apply는 대기 중인 다른 타깃 변경까지 전부 적용해버림.
+      # --force 필수 — chezmoi가 마지막에 쓴 상태와 실제 항목이 다르면(현 상태 MM) 덮어쓸지 프롬프트를 띄움.
+      # TTY 없는 launchd에선 응답 불가 → 무한 대기/실패로 자가치유가 매일 죽음. 플래그는 이 호출에만(전역 force 금지).
+      if [ "$CAPTURED" -eq 0 ] && chezmoi apply --force "$HOME/.claude/settings.json"; then
+        HEALED=1
+      elif [ "$CAPTURED" -ne 0 ]; then
+        # 캡처 자체가 실패 → 내용 미확보. apply 보류해 실파일 원본 보존. BROKEN과 무관하게 항상 알림 — 동시 파손과도 독립적으로 울려야 함.
+        notify "settings.json 캡처 실패 — 복구 보류(실파일 보존). 조사 우선"
+      else
+        # 캡처는 이미 성공 → 내용 안전, 심링크 복구만 실패. 알리되 백업은 계속 (exit 금지)
+        notify "settings.json 심링크 복구 실패 — 내용은 캡처됨, 백업 계속"
+      fi
+    else
+      BROKEN=1
+    fi
   fi
 done
 if [ ! -L "$HOME/.config/nvim" ] || [ "$(readlink "$HOME/.config/nvim")" != "$SRC/external_nvim" ]; then
@@ -323,10 +351,13 @@ if [ ! -L "$HOME/.config/nvim" ] || [ "$(readlink "$HOME/.config/nvim")" != "$SR
         --exclude '*.log' --exclude '.DS_Store' "$HOME/.config/nvim/" "$SRC/external_nvim/" 2>/dev/null
 fi
 [ "$BROKEN" -eq 1 ] && notify "심링크 파손 — fallback 캡처함. apply 승인 금지, 조사 우선"
+[ "$HEALED" -eq 1 ] && notify "settings.json 심링크 자동 복구함"   # 정보성 — 알람 아님, 같은 런에서 위 파손 알림과 동시 발생 가능
 
 # [3] 표면 감사 — [W12] ~/.claude 루트 신규 파일(백업 사각) 검출
 if [ -f "$SRC/scripts/claude-surface.txt" ]; then
-  ls -A "$HOME/.claude" | diff -q "$SRC/scripts/claude-surface.txt" - >/dev/null 2>&1 \
+  # LC_ALL=C 고정 — launchd는 LANG을 안 넘김(plist EnvironmentVariables는 PATH뿐). C 정렬은 대문자 우선이라
+  # CLAUDE.md 위치가 대화형 en_US.UTF-8 결과와 어긋나 매일 오탐. 스냅샷도 `LC_ALL=C ls -A ~/.claude`로 생성할 것.
+  LC_ALL=C ls -A "$HOME/.claude" | diff -q "$SRC/scripts/claude-surface.txt" - >/dev/null 2>&1 \
     || notify "~/.claude 신규 항목 감지 — 페이로드 승격 또는 ignore 등재 필요"
 fi
 
@@ -361,6 +392,7 @@ R=$(unpushed) || R="미push 집계 불가(원격 미설정)"
 notify "auto-sync 커밋됨 — $R. chezmoi cd 후 git log -p 리뷰·git push"
 ```
 v1 대비 삭제: [4] nvim lazy-lock 7일 dirty 감시 — nvim 흡수로 write-through되어 야간 커밋에 자동 포함([I8] 소멸). [8] push 재시도 분기, [11] push+요약 알림 — 모델 b로 소멸([I5][W8]).
+★ 표면 감사([W12], 블록 [3])의 **로케일 고정**: 비교와 `claude-surface.txt` 스냅샷 생성이 **둘 다 `LC_ALL=C`로 못박혀** 있어야 한다 — launchd는 로케일을 전혀 안 넘기고(plist `EnvironmentVariables`는 `PATH`뿐) C 정렬은 대문자 우선이라 `CLAUDE.md`가 대화형 `en_US.UTF-8` 정렬과 다른 줄에 놓인다. 한쪽만 고정하면 `diff -q`가 항목 변화 없이도 매번 어긋나며, 실제로 직전 스냅샷은 순전히 이 사유로 매일 오탐을 냈다. 스냅샷 재생성도 반드시 `LC_ALL=C ls -A ~/.claude`(S5·9장 갱신 절차 동일).
 로그는 plist의 StandardOut/ErrorPath(`~/Library/Logs/chezmoi-sync.log`)로 — repo 밖이라 롤링 코드 불요.
 
 **`private_Library/private_LaunchAgents/com.user.chezmoi-sync.plist.tmpl`** ★ 17:00 (launchd StartCalendarInterval은 로컬 타임존)
@@ -411,13 +443,22 @@ v1 대비 삭제: [4] nvim lazy-lock 7일 dirty 감시 — nvim 흡수로 write-
 
 **왜 이 방식인가** (v1 논증 유지): 앱이 쓰는 순간 심링크 관통으로 소스 working tree에 반영 = drift가 정의상 0이고, `chezmoi apply`(--force 포함)가 앱 변경을 되돌리는 것이 구조적으로 불가능(내용이 타깃 상태 밖). 디렉터리 심링크라 "새 파일 자동 편입"도 보존. `external_` prefix로 소스 속성 파싱 면역([I4]) — external_nvim에도 동일 적용. v1의 "nvim-settings는 통합하지 않는다"는 흡수 결정으로 대체 — 별도 repo·별도 커밋처가 사라져 lazy-lock이 야간 커밋에 자동 합류한다.
 
+**★ v3 확장 — 캡처-전용에서 캡처-후-복구로** `[B5]`: v2까지 이 패턴의 파손 대응은 "캡처하고 사람을 부른다"뿐이었다. 2026-07-28 10:54:54 `~/.claude/settings.json` 심링크가 실제로 죽으면서 전제가 하나 갈라졌다. **원인**: Claude Code는 영속 설정 저장(기본 모델 변경·`/config`·플러그인 설치) 시 temp 파일 + rename으로 파일을 갈아치운다 — 그날의 방아쇠는 기본 모델 변경이고 커밋 `9762e9d`에 `"claude-fable-5[1m]"` → `"fable"`로 남아 있다. rename은 심링크를 관통하지 않고 심링크 **자체**를 대체하므로 그 순간 write-through 등가가 끊긴다. **증거**: 새 inode의 birth == mtime == ctime인데 chezmoi state DB는 여전히 타입 `symlink`로 기록하고 있었다 — 앱이 새 파일로 갈아끼웠고 chezmoi는 모르고 있었다는 뜻. 앱의 쓰기 전략에서 나오는 재발 확정 사건이라 1회 수리는 답이 아니고, 설계상의 답은 자가치유다 → nightly [2]는 캡처(rsync) 후 `chezmoi apply --force "$HOME/.claude/settings.json"`으로 심링크를 되살린다(2.5 전문).
+
+- **순서 불변식**: 캡처(rsync)가 복구(apply)보다 **엄격히 먼저**. 역전하면 apply가 실파일을 지우고 stale 소스 심링크로 덮어 당일 변경분(예: 새 모델값)이 소실된다 — 회수-우선 원칙(6장)의 같은 논리.
+- **경로 한정 필수**: 맨 `chezmoi apply`는 대기 중인 다른 타깃 변경까지 전부 적용한다. 반드시 타깃 1개로 한정해야 야간 잡의 apply 금지 원칙(3.2)을 실질적으로 뚫지 않는다.
+- **★ 실패 모드 ① — TTY 없는 launchd의 프롬프트 교착 → `--force` 필수**: chezmoi는 마지막으로 자기가 쓴 상태와 실제 타깃이 다르면(externally modified, `chezmoi status`상 `MM`) 덮어쓸지 대화형으로 묻는다. 그런데 심링크 파손 상태의 `settings.json`이 **정확히 그 상태**다 — 자가치유가 필요한 모든 런이 곧 프롬프트가 뜨는 런이다. launchd 잡에는 TTY가 없어 응답이 불가능하니 그대로 두면 자가치유가 무한 대기/실패로 **매일 죽는다**. 그래서 플래그는 이 호출 하나에만 붙이고, **`chezmoi.toml`의 `force = true`는 의도적으로 쓰지 않는다** — 전역으로 켜면 사람이 대화형으로 도는 apply에서도 확인 프롬프트가 사라져, 야간 잡의 사고 1건을 막으려다 사람 apply의 안전망을 통째로 걷어내게 된다.
+- **★ 실패 모드 ② — 캡처 rc가 apply의 전제**: 캡처 rsync의 종료 상태를 즉시 `CAPTURED`에 포획해 `CAPTURED -eq 0`일 때만 apply한다(초기값도 `CAPTURED=1`로 fail-closed — 미래 리팩터가 이 값을 손대도 조용히 apply를 승인하지 않는다). 이 게이트가 없으면 `--force`가 **조용한 rsync 실패를 그날 설정 변경분의 파괴로 승격**시킨다 — 이 머신의 rsync는 openrsync(protocol 29)라 dangling 심링크 소스·읽기전용 대상에서 rc=23으로 죽으면서 아무것도 안 옮기거나 목적지에 stale 내용을 그대로 남기는데, 순서 불변식은 "캡처가 먼저 돈다"가 아니라 "캡처가 **성공했다**"를 실제 전제로 삼기 때문이다. 캡처 실패 시에는 apply를 보류해 홈의 실파일 원본을 **손대지 않은 채** 남기고, 조용한 정보성 경로가 아니라 시끄러운 전용 알림("캡처 실패 — 복구 보류(실파일 보존). 조사 우선")으로 보낸다 — 내용 미확보는 진짜 이상 신호이며 사람이 봐야 한다. 이 알림은 `BROKEN` 여부와 무관하게 항상 뜬다 — 이제 캡처 실패는 `settings.json` 한 항목에만 국한되고 `BROKEN`은 나머지 5개 claude 심링크+★nvim에서만 fallback rsync를 동반해 세워지므로, `BROKEN=1`일 때 "fallback 캡처함" 문구는 항상 참이다. 그래서 같은 런에 `settings.json` 캡처 실패와 다른 타깃의 진짜 파손이 겹치면 두 알림이 함께 뜨는 것이 맞다 — 각자 독립된 진짜 신호이며, 어느 한쪽이 다른 쪽을 억누르면 안 된다(이전엔 `CAPFAIL` 가드가 이 겹침에서 파손 알림을 조용히 삼켰다 — 제거됨).
+- **범위는 `settings.json` 1개뿐**: 나머지 claude 심링크 5개 + ★nvim 1개는 앱이 재작성하지 않아 깨질 이유가 없다 — 파손이면 진짜 이상 신호다. 전부 자동 치유하면 그 신호를 덮으므로 이들은 종전대로 `BROKEN=1` 알림 전용으로 남긴다.
+- **복구 실패해도 백업은 계속**(exit 금지): 캡처가 이미 끝나 내용은 안전하고 남은 결손은 심링크뿐. 성공 시 "자동 복구함" 정보성 알림 1건 — 알람이 아니며 같은 런에서 심링크 파손 알림과 동시 발생할 수 있다.
+
 ### 3.2 야간 자동 백업: launchd 17:00, **로컬 커밋까지만**
 
 - 라벨 `com.user.chezmoi-sync`(plist는 chezmoi 템플릿 관리, run_onchange_40이 reload). 구 `com.user.claude-sync`는 S1에서 bootout+**disable**(재부팅 영속), S8에서 plist 삭제.
 - 파이프라인(2.5): lock → gitleaks smoke → 심링크 7개 assert+fallback → 표면 감사 → re-add → `git add -A` → 기밀 staged 게이트 → gitleaks 명시 스캔 → **커밋** → **"커밋됨 + 미push N개(최고 M일)" 알림**. 여기서 끝 — **push 없음**.
 - **push는 사람의 명시적 행위**: `chezmoi cd` → `git log -p origin/main..HEAD` diff 리뷰 → `git push`. **리뷰는 반드시 diff 수준** — 야간 커밋 제목은 전부 동일한 `chore(dotfiles): auto-sync …`라 메시지-온리 `git log`는 리뷰어에게 콘텐츠 정보량이 0이다. **최소 리뷰 범위 = external_claude/CLAUDE.md·skills·agents diff 통독 — push의 필수 선행 조건.** 권장 리듬 주 1회 이상(알림이 매일 17:00 미push 카운트·최고령을 리마인드).
 - `autoCommit/autoPush=false` 유지 — chezmoi 순정. 자동 git 동작은 야간 잡의 `add`/`commit`뿐이며 chezmoi 설정으로는 어떤 자동 git도 켜지 않는다.
-- **야간 잡은 `chezmoi apply`를 절대 하지 않는다** (v1 유지): 설정 역행·self-bootout 함정 원천 차단. 정방향은 항상 사람이 대화형으로.
+- **야간 잡은 맨 `chezmoi apply`를 하지 않는다** (v1 유지): 설정 역행·self-bootout 함정 원천 차단. 정방향은 항상 사람이 대화형으로. **v3 단일 예외**: 블록 [2]의 `chezmoi apply --force "$HOME/.claude/settings.json"` — 타깃 1개로 경로 한정이고 **캡처가 성공한 뒤에만**(`CAPTURED -eq 0`) 돌기 때문에 역행 대상이 존재하지 않으며, 대기 중인 다른 타깃(plist 등)을 건드리지 않아 self-bootout 함정에도 닿지 않는다. `--force`는 TTY 없는 launchd에서 프롬프트 교착을 피하려는 이 호출 한정 플래그이고 `chezmoi.toml` 전역 설정이 아니다(3.1).
 - **launchd 활성화는 S8(원격 공개 후)** (v1 순서 유지 [B1][B4]): 무인 push는 없어졌지만 무인 **커밋**은 여전히 히스토리에 박히므로, 공개 전 히스토리를 사람의 의도적 커밋만으로 유지하는 순서는 그대로 둔다. 신규 repo라 히스토리가 짧아 S7 전 히스토리 스캔 부담도 최소.
 
 **산문 기밀의 구조적 해소**: gitleaks는 비-시크릿 기밀 "산문"(클라이언트명·경로가 든 문장)에 0겹이다. v1(자동 push)은 push 후 24h 회수 창([W8])이라는 사후 보정에 의존했으나, 모델 b에서는 **원격에 닿는 모든 바이트가 사람의 diff 리뷰(`git log -p`)를 통과** — 리뷰가 사후 회수가 아닌 완전한 사전 게이트가 되어 W8이 소멸한다. 단 이 게이트의 성립 조건은 diff 수준 리뷰다(3.2 최소 리뷰 범위) — 메시지-온리 리뷰로는 소멸 판정이 성립하지 않는다.
@@ -459,7 +500,7 @@ v1의 BLOCK 6·WARN 12·INFO 8이 v2에서 어떤 상태인지. **소멸은 반�
 | W9 | 유지 | nightly [4] re-add rc 알림, `~/.zshrc.local` 시크릿 격리 관례(미백업) |
 | W10 | 유지 | `.gitignore` 기밀 미러 섹션(history.jsonl·sessions·projects 등) |
 | W11 | 유지 | pre-commit·nightly 양쪽 rc=1/기타 rc 분기, nightly [1] smoke 체크 |
-| W12 | 유지 | nightly [3] 표면 감사+`claude-surface.txt` baseline. keybindings.json은 "생기면 표면 감사" 기본안 확정 |
+| W12 | 유지 | nightly [3] 표면 감사+`claude-surface.txt` baseline(비교·스냅샷 양쪽 `LC_ALL=C` 고정 — 2.5). keybindings.json은 "생기면 표면 감사" 기본안 확정 |
 | I1 | **소멸(사유: 스텝 자체 삭제)** | 구 repo 커밋 정리(P0-2)·bundle 3종 의식이 리프레임으로 삭제 — 구 repo는 소스가 아니므로 dirty여도 무해(캡처 시점의 라이브 파일이 그대로 v2 소스가 되어 손실 없음) |
 | I2 | 유지 | S5 2단 apply: `chezmoi apply ~/.zshrc ~/.zshenv` → 전체 apply (부재 창 초 단위) |
 | I3 | 유지(형태 변경) | 구 repo `git ls-files` 매니페스트 대조 → **동일 rsync `-n` 재실행 무전송** + 루트 파일 `cmp` (라이브 캡처에 맞는 등가 검증) |
@@ -580,7 +621,7 @@ v1의 BLOCK 6·WARN 12·INFO 8이 v2에서 어떤 상태인지. **소멸은 반�
                                       # settings.json 등 "내용" diff가 보이면 ignore 오류 — 즉시 중단
   rm ~/.zshrc ~/.zshenv && chezmoi apply ~/.zshrc ~/.zshenv   # 파일만 즉시 배치 — 부재 창 초 단위 [I2]
   chezmoi apply                                               # 전체 (스크립트 포함 — run_once_25가 Lazy restore)
-  ls -A ~/.claude > $SRC/scripts/claude-surface.txt           # 표면 감사 baseline [W12]
+  LC_ALL=C ls -A ~/.claude > $SRC/scripts/claude-surface.txt  # 표면 감사 baseline [W12] — 로케일 고정 필수(2.5)
   git -C $SRC add -A && git -C $SRC commit -m "chore(claude): 표면 baseline 기록"
   ```
 - 검증:
@@ -750,6 +791,11 @@ chezmoi state delete-bucket --bucket=entryState    # run_onchange
 ```
 후 재-apply.
 
+### settings.json 자가치유 되돌리기 (v3 확장만 무효화) `[B5]`
+자가치유를 끄려면 `scripts/nightly-sync.sh` **블록 [2]만** v2 형태로 되돌린다 — `HEALED`·`CAPTURED` 변수(rsync rc 포획 포함)와 `settings.json` 분기(경로 한정 `chezmoi apply --force`·캡처 실패 보류 알림·복구 실패 알림·"자동 복구함" 정보성 알림)를 걷어내고 루프 상단의 무조건 `BROKEN=1`을 복원하면 된다. 다른 블록·nvim 검사·블록 번호는 손대지 않는다. chezmoi 상태는 건드릴 게 없다(자가치유는 스크립트 안에만 존재).
+
+남는 상태: 이후 앱이 다시 temp+rename으로 갈아치우면 `~/.claude/settings.json`은 **실파일로 남는다**(심링크 소멸, 이후 야간마다 파손 알림 반복). 다만 내용은 같은 블록의 rsync fallback 캡처가 계속 잡으므로 **데이터 손실은 없고**, 잃는 것은 심링크 = write-through 등가뿐이다 — 파손 이후 변경분은 즉시 반영이 아니라 야간 캡처 주기(17:00 1회)만큼 지연되어 소스에 들어온다. 심링크를 다시 세우려면 사람이 대화형으로 `chezmoi apply ~/.claude/settings.json` (반드시 그날 캡처가 끝난 뒤 — 3.1 순서 불변식 동일 적용).
+
 ---
 
 ## 7. 백업하지 않는 것과 사유
@@ -806,7 +852,7 @@ v1 "남은 결정 사항" 7건의 처분:
 **운영 규칙** (soak 이후 상시):
 - chezmoi 업그레이드 후: S6의 dry-run 기밀 add 차단 4종 재실행 + add.secrets 발동 여부 재기록 ([I7][W6] — 버전 pin 없음).
 - push 리듬: 매일 17:00 알림의 미push 카운트·최고령을 신호로 주 1회 이상 `chezmoi cd` → `git log -p origin/main..HEAD` diff 리뷰(최소 범위: external_claude/CLAUDE.md·skills·agents 통독) → `git push`.
-- `~/.claude` 신규 항목 알림([W12]) 시 2지선다: 설정이면 페이로드 승격+symlink tmpl 추가, 런타임이면 `.chezmoiignore` 등재+`claude-surface.txt` baseline 갱신.
+- `~/.claude` 신규 항목 알림([W12]) 시 2지선다: 설정이면 페이로드 승격+symlink tmpl 추가, 런타임이면 `.chezmoiignore` 등재+`claude-surface.txt` baseline 갱신 — 갱신은 반드시 `LC_ALL=C ls -A ~/.claude`로(로케일 미고정 시 매일 오탐, 2.5).
 
 ### 알려진 함정: StartCalendarInterval 타임존 시프트 (2026-07-21 실측)
 

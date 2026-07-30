@@ -1,7 +1,8 @@
 ---
 name: design-first
 description: |
-  복잡한 기능 개발 전 Scout-Architect-Estimator 프로세스로 분석합니다.
+  Runs a Scout-Architect-Estimator analysis process before building a complex feature.
+  Use when you need design analysis, planning, effort estimation, architecture review, approach comparison, or risk assessment.
   설계, 분석, 계획, 공수 산정, 아키텍처, 접근법 비교, 리스크 평가가 필요할 때 사용하세요.
 ---
 

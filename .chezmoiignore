@@ -9,6 +9,8 @@ scripts
 scripts/**
 githooks
 githooks/**
+docs                  # 소스 전용 참조 문서(백업 스펙) — 홈 배포 금지, ~/docs 생성 금지
+docs/**
 
 # ===== [2] 기밀·런타임 — chezmoi add/re-add/status 가시권에서 구조적 제거 =====
 projects/**                      # ~/projects = 클라이언트 저장소. add 실수 원천 차단
@@ -34,6 +36,7 @@ projects/**                      # ~/projects = 클라이언트 저장소. add �
 .claude/context-mode/**
 .claude/.caveman-active
 .claude/.last-cleanup
+.claude/.last-update-result.json # Claude Code 자동 업데이트 결과 캐시 — 런타임 노이즈, 복원 가치 없음
 .claude/mcp-needs-auth-cache.json
 .claude/*.backup.*
 .claude/*.log
