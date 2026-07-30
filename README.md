@@ -41,7 +41,8 @@ apply 시 run 스크립트가 자동 수행:
 
 ## 동기화 모델
 
-- **로컬 커밋 자동**: launchd가 매일 17:00에 `scripts/nightly-sync.sh` 실행 — 심링크 무결성 검사 → 표면 감사 → `re-add` → gitleaks 스캔 → 로컬 커밋까지만. (launchd 등록은 아직 미활성)
+- **로컬 커밋 자동**: launchd가 매일 17:00에 `scripts/nightly-sync.sh` 실행 — 심링크 무결성 검사 → 표면 감사 → `re-add` → gitleaks 스캔 → 로컬 커밋까지만. (launchd 잡 `com.user.chezmoi-sync` 등록·로드 완료 — 가동 중)
+- **settings.json 심링크 자가치유**: Claude Code는 영속 설정이 바뀔 때마다(기본 모델, `/config` 토글, 플러그인 설치) `~/.claude/settings.json`을 temp 파일 + rename으로 재작성해 심링크를 깨뜨린다 — 야간 스크립트가 고아 파일 내용을 먼저 캡처한 뒤 심링크를 재적용한다. 이 한 건만 자동 복구이고, 다른 심링크 파손은 알림만 보낸다.
 - **push는 수동**: `chezmoi cd`로 소스 repo에 진입한 뒤 `git log -p origin/main..HEAD`로 diff 리뷰 → `git push`. (서브셸 없이 한 줄로 하려면 `git -C "$(chezmoi source-path)" log -p origin/main..HEAD`)
 
 push를 수동으로 두는 이유: gitleaks는 시크릿만 잡고, 클라이언트명·경로 같은 산문 기밀은 못 잡는다. 원격에 닿는 모든 바이트가 사람의 diff 리뷰를 거치게 하는 사전 게이트다.
