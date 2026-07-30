@@ -26,11 +26,36 @@ command -v gitleaks >/dev/null || { notify "gitleaks 미설치 — 백업 중단
 
 # [2] 심링크 무결성 assert + 파손 시 fallback 캡처 — [B5] claude 6개 + ★nvim 1개
 BROKEN=0
+HEALED=0
+CAPTURED=1   # 기본 실패값 — 캡처 확인 전엔 apply 금지
 for f in CLAUDE.md settings.json statusline-wrapper.sh skills agents hooks; do
   if [ ! -L "$HOME/.claude/$f" ] || [ "$(readlink "$HOME/.claude/$f")" != "$SRC/external_claude/$f" ]; then
-    BROKEN=1
+    # 캡처 먼저 — 순서 역전 절대 금지 (아래 apply 주석 참조)
     rsync -aL --exclude 'memory/' --exclude '*.local.md' --exclude '*.local.json' \
           --exclude '*.log' --exclude '.DS_Store' "$HOME/.claude/$f" "$SRC/external_claude/" 2>/dev/null
+    CAPTURED=$?   # rsync rc 즉시 포획 — 이 머신은 openrsync(protocol 29). dangling 심링크 소스·읽기전용 대상에서
+                  # rc=23이며 아무것도 안 옮기거나 stale 내용을 그대로 둠. 아래 apply의 전제 조건으로 필수.
+    if [ "$f" = "settings.json" ]; then
+      # settings.json만 자가치유 — Claude Code가 영속 설정 저장(기본 모델 변경·/config·플러그인 설치) 시
+      # temp+rename으로 심링크를 실파일로 갈아치움. 정상 동작이라 재발 확정 → 사람 호출 대신 자동 복구.
+      # 나머지 6개(+nvim)는 깨질 이유가 없음 → 파손이면 진짜 이상. 전부 자동 치유하면 그 신호를 덮음 → BROKEN=1 유지.
+      # 순서: 위 rsync 캡처 → 여기 apply. 역전 시 apply가 실파일을 지우고 stale 소스 심링크로 대체 → 당일 변경(예: 새 모델값) 소실.
+      # 같은 이유로 CAPTURED -eq 0 이 apply의 전제 — 캡처 실패 상태에서 --force로 밀면 그 소실이 그대로 실현됨.
+      # 경로 한정 필수 — 맨 chezmoi apply는 대기 중인 다른 타깃 변경까지 전부 적용해버림.
+      # --force 필수 — chezmoi가 마지막에 쓴 상태와 실제 항목이 다르면(현 상태 MM) 덮어쓸지 프롬프트를 띄움.
+      # TTY 없는 launchd에선 응답 불가 → 무한 대기/실패로 자가치유가 매일 죽음. 플래그는 이 호출에만(전역 force 금지).
+      if [ "$CAPTURED" -eq 0 ] && chezmoi apply --force "$HOME/.claude/settings.json"; then
+        HEALED=1
+      elif [ "$CAPTURED" -ne 0 ]; then
+        # 캡처 자체가 실패 → 내용 미확보. apply 보류해 실파일 원본 보존. BROKEN과 무관하게 항상 알림 — 동시 파손과도 독립적으로 울려야 함.
+        notify "settings.json 캡처 실패 — 복구 보류(실파일 보존). 조사 우선"
+      else
+        # 캡처는 이미 성공 → 내용 안전, 심링크 복구만 실패. 알리되 백업은 계속 (exit 금지)
+        notify "settings.json 심링크 복구 실패 — 내용은 캡처됨, 백업 계속"
+      fi
+    else
+      BROKEN=1
+    fi
   fi
 done
 if [ ! -L "$HOME/.config/nvim" ] || [ "$(readlink "$HOME/.config/nvim")" != "$SRC/external_nvim" ]; then
@@ -39,10 +64,13 @@ if [ ! -L "$HOME/.config/nvim" ] || [ "$(readlink "$HOME/.config/nvim")" != "$SR
         --exclude '*.log' --exclude '.DS_Store' "$HOME/.config/nvim/" "$SRC/external_nvim/" 2>/dev/null
 fi
 [ "$BROKEN" -eq 1 ] && notify "심링크 파손 — fallback 캡처함. apply 승인 금지, 조사 우선"
+[ "$HEALED" -eq 1 ] && notify "settings.json 심링크 자동 복구함"   # 정보성 — 알람 아님, 같은 런에서 위 파손 알림과 동시 발생 가능
 
 # [3] 표면 감사 — [W12] ~/.claude 루트 신규 파일(백업 사각) 검출
 if [ -f "$SRC/scripts/claude-surface.txt" ]; then
-  ls -A "$HOME/.claude" | diff -q "$SRC/scripts/claude-surface.txt" - >/dev/null 2>&1 \
+  # LC_ALL=C 고정 — launchd는 LANG을 안 넘김(plist EnvironmentVariables는 PATH뿐). C 정렬은 대문자 우선이라
+  # CLAUDE.md 위치가 대화형 en_US.UTF-8 결과와 어긋나 매일 오탐. 스냅샷도 `LC_ALL=C ls -A ~/.claude`로 생성할 것.
+  LC_ALL=C ls -A "$HOME/.claude" | diff -q "$SRC/scripts/claude-surface.txt" - >/dev/null 2>&1 \
     || notify "~/.claude 신규 항목 감지 — 페이로드 승격 또는 ignore 등재 필요"
 fi
 
