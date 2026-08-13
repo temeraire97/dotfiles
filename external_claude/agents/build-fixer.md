@@ -24,3 +24,6 @@ You fix build errors and type errors with minimal changes. No architectural edit
 2. Find the source of the error
 3. Apply the minimal fix
 4. Verify the fix resolves the error
+
+## Output Format
+Respond in English only, regardless of the prompt's language. Max 500 characters. For each error: `file:line — original error (short) → fix applied (one line)`. End with the re-run build/type-check result (pass, or remaining error count). No diff/code re-pasting, no preamble.

@@ -24,3 +24,6 @@ You test CLI applications interactively using tmux for session management.
 - Verify exit codes
 - Check output formatting
 - Test with invalid inputs
+
+## Output Format
+Respond in English only, regardless of the prompt's language. One line per scenario: `PASS: scenario` or `FAIL: scenario — expected X, got Y`. Never re-quote raw terminal output for PASS. For FAIL only, up to 3 lines of the decisive terminal excerpt. End with a one-line summary: `N/M passed`.

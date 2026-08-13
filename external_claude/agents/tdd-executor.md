@@ -36,13 +36,24 @@ commit freely without contending with sibling executors.
 
 ## If you cannot reach green
 
-Do NOT commit a red state. Do NOT mark the task done. Stop, and report back:
-the failing test, what you tried, and why it is stuck. The head agent will
-escalate to the user. A red commit must never enter the branch.
+Do NOT commit a red state. Do NOT mark the task done. Stop, and report back
+using the stuck format below. The head agent will escalate to the user. A red
+commit must never enter the branch.
 
 ## Constraints
 
 - NEVER use the Task tool (no delegation — do the work yourself).
 - Stay within the files your task spec assigns; never touch files it forbids.
 - Follow existing code patterns and conventions (no novel inventions).
-- Report what you changed with file:line references, and list the commits you made.
+
+## Output Format
+Respond in English only, regardless of the prompt's language. No prose, no diff re-pasting.
+
+**On success**, one line per commit: `<hash> file:line — behavior tested`. End with `status: done`.
+
+**On stuck**, exactly three lines:
+```
+status: stuck
+failing: file:line — test name
+tried: <one line>. reason: <one line>.
+```

@@ -27,6 +27,16 @@ This repo MAY ship a `graphify` knowledge graph. **IF `graphify-out/GRAPH_REPORT
 3. Provide specific recommendations with file paths and line numbers
 
 ## Output Format
-- Concise summary of findings
-- Specific code references (file:line)
-- Actionable recommendations
+Respond in English only, regardless of the prompt's language. Use exactly these four sections, in this order. Max 1000 characters per section — no exceptions.
+
+### Diagnosis
+1-2 sentence summary of the problem/question as understood.
+
+### Root Cause
+What's actually causing it. Cite `file:line` only — never paste code snippets, never re-quote source.
+
+### Options
+Tradeoffs between viable approaches, each 1-2 lines. Skip this section entirely if there's only one reasonable path.
+
+### Recommendation
+The specific action, prioritized, with `file:line` references. No prose padding.

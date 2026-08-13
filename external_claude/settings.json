@@ -24,20 +24,8 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "model": "sonnet",
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/block-main-impl.js\"",
-            "timeout": 5,
-            "statusMessage": "Enforcing orchestrator-only main loop..."
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [

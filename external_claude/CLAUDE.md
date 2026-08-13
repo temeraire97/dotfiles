@@ -11,21 +11,16 @@ Not optional. User verify manually. Build commands:
 
 **ONLY use `pnpm dev` or type-check commands if explicitly asked.**
 
-## Model Routing (Orchestrator Discipline)
+## Model Routing
 
-**The main loop (Opus) is an ORCHESTRATOR / ARCHITECT only.** It plans, decomposes, delegates, reviews, and commits — it does NOT write implementation code itself.
-
-- ⛔ **Main Opus loop: NEVER call `Edit` / `Write` / `MultiEdit` / `NotebookEdit` directly.** Every file-modifying change is delegated to a **Sonnet** subagent via the Task tool.
-- ✅ **Implementation → Sonnet subagents.** Spawn `executor` (or `tdd-executor` for `[TDD]` tasks, `build-fixer` for build/type errors) for every code change, including "tiny" ones. Consistency over the marginal latency saved by inlining.
+- ✅ **Delegate heavy implementation work to Sonnet subagents.** Spawn `executor` (or `tdd-executor` for `[TDD]` tasks, `build-fixer` for build/type errors) for multi-file or multi-step changes. Small, well-scoped edits can be made directly.
 - ✅ **Haiku = one-shot lookup / single-pass only.** Use Haiku-tier agents (`architect-low`, `code-reviewer-low`, `security-reviewer-low`) for single-pass read/lookup/review. The `writer` agent (Haiku) is the one sanctioned Haiku editor, and ONLY for documentation. Never give a Haiku agent multi-step or code-mutating work.
-- A PreToolUse hook (`block-main-impl.js`) enforces this by denying Edit/Write from the main session; if it is ever disabled, this directive still governs.
-- The ONLY exception is a literal one-keystroke fix the user explicitly orders inline ("just fix it directly"); even then prefer delegation.
 
 ## Simple Fix Fast-Path (간단 수정은 main 직접)
 
 **간단한 수정은 Branch Discipline의 예외로 worktree/브랜치/PR/검증 파이프라인을 생략하고 main에 직접 commit + push한다.**
 
-이는 BRANCHING 정책의 변경이다 (누가 편집하는지가 아님). **Sonnet executor는 여전히 편집을 담당하며**, 다만 worktree 오버헤드 없이 main에 직접 배포된다.
+이는 BRANCHING 정책이다. worktree 오버헤드 없이 main에 직접 배포된다.
 
 **적용 대상:**
 - 변경량: 약 1-2줄 이내
@@ -44,7 +39,6 @@ Not optional. User verify manually. Build commands:
 - **판단 불명확 시 → 무조건 브랜치 사용 (보수적 원칙)**
 
 **커밋 규칙 (동일 유지):**
-- 편집은 Sonnet executor에 위임 (main loop는 Edit/Write 직접 금지)
 - 한국어 Conventional Commits 형식: `type(scope): message`
 - scope 필수 (생략 금지)
 - AI/Claude fingerprint 절대 금지 (Co-Authored-By 등)
