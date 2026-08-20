@@ -147,7 +147,8 @@
     "context-mode@context-mode": true,
     "lua-lsp@claude-plugins-official": true,
     "caveman@caveman": true,
-    "impeccable@impeccable": true
+    "impeccable@impeccable": true,
+    "frontend-fundamentals@toss": true
   },
   "extraKnownMarketplaces": {
     "impeccable": {
@@ -172,6 +173,12 @@
       "source": {
         "source": "github",
         "repo": "jarrodwatts/claude-hud"
+      }
+    },
+    "toss": {
+      "source": {
+        "source": "github",
+        "repo": "toss/frontend-fundamentals"
       }
     }
   },
