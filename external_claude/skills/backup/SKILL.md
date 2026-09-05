@@ -2,7 +2,7 @@
 name: backup
 description: |
   Inspect, run, or restore the chezmoi-managed backup of Claude Code config (백업, 백업 상태, 복원).
-  Use /backup, /backup status, /backup now, /backup restore, /backup diff, /backup log.
+  Use /backup, /backup status, /backup now, /backup review, /backup push, /backup restore, /backup diff, /backup log.
 ---
 
 # Claude Code Backup Skill
@@ -32,9 +32,11 @@ drift is structurally zero.
 
 1. The remote `git@github.com:temeraire97/dotfiles.git` is **PUBLIC**. Anything
    committed is one push away from being world-readable.
-2. **Push is always manual.** The automation commits **locally only**. A human
-   reviews `git log -p origin/main..HEAD` and pushes. Never push on the user's
-   behalf, and never describe the sync as "pushed".
+2. **Push is never automatic.** The automation commits **locally only**. Pushing
+   happens through `/backup push` alone, and only after `/backup review` has run
+   in the same conversation and the user answered its gate with an explicit yes.
+   `/backup now` and `/backup status` never push, and never describe the sync as
+   "pushed".
 
 **Automation:** launchd job `com.user.chezmoi-sync` runs
 `<source>/scripts/nightly-sync.sh` daily at **17:00**, logging to
@@ -88,8 +90,8 @@ do not act on it.
 [로그 tail]
 \`\`\`
 
-미push 커밋이 있으면: `git -C "$(chezmoi source-path)" log -p origin/main..HEAD`로
-diff를 직접 리뷰한 뒤 `git push`. 저장소가 공개이므로 리뷰 없이 push 금지.
+미push 커밋이 있으면 `/backup review`로 리뷰 후 `/backup push`.
+저장소가 공개이므로 리뷰 없이 push 금지.
 ```
 
 ---
@@ -122,11 +124,141 @@ verbatim instead of retrying.
 | Git commit | ✅ 커밋됨 / ⏭️ 변경 없음 |
 | 미push 커밋 | N개 |
 
-**다음 단계 (사람이 직접):**
-\`\`\`
-git -C "$(chezmoi source-path)" log -p origin/main..HEAD   # diff 리뷰
-git -C "$(chezmoi source-path)" push                        # 승인 후 push
-\`\`\`
+**다음 단계:** `/backup review` → `/backup push`
+```
+
+---
+
+### `/backup review`
+
+Review the **unpushed range** (`origin/main..HEAD`) before it becomes public.
+Read-only. This is the mandatory gate in front of `/backup push`.
+
+Not the same as `/backup diff`: that one compares live home vs. source and shows
+uncommitted edits. This one inspects commits that are already made but not yet
+on the public remote.
+
+**Actions:**
+```bash
+SRC="$(chezmoi source-path)"
+
+# [1] Refresh the remote ref so the range is accurate
+git -C "$SRC" fetch origin --quiet
+
+# [2] What is unpushed
+git -C "$SRC" log --format='%h %ci %s' origin/main..HEAD
+git -C "$SRC" diff --stat origin/main..HEAD
+
+# [3] Secret scan over exactly that range (fail-closed: missing gitleaks = FAIL)
+gitleaks git --log-opts="origin/main..HEAD" --no-banner --redact "$SRC"
+
+# [4] Added lines only: token shapes + personal absolute paths.
+#     `command grep` on purpose: the Claude Code shell aliases grep to ugrep,
+#     which silently drops matches for the alternation+{8,} group below.
+git -C "$SRC" diff origin/main..HEAD | command grep -E '^\+' | command grep -v '^+++' \
+  | command grep -inE 'sk-[a-z0-9_-]{10,}|ghp_[A-Za-z0-9]{20,}|xox[bp]-|AKIA[0-9A-Z]{12}|eyJ[A-Za-z0-9_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY|(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9_./+=-]{8,}["'"'"']|/Users/[a-z0-9_-]+' \
+  || echo "(no pattern hits)"
+
+# [5] Hand-review the files that carry real risk. Print each in full.
+#     Everything under external_claude/skills/<third-party>/ that is a pure
+#     upstream version bump can be summarised by version delta instead.
+git -C "$SRC" diff origin/main..HEAD -- \
+  dot_zshrc external_claude/settings.json external_claude/CLAUDE.md \
+  external_claude/hooks external_claude/agents \
+  external_claude/statusline-wrapper.sh
+git -C "$SRC" diff origin/main..HEAD --diff-filter=A --name-only   # new files
+```
+
+**Verdict rules:**
+- **BLOCK** if gitleaks is missing, exits non-zero, or reports a leak; or if step
+  [4] shows a credential-shaped hit. Report the exact line (redacted). Do not
+  proceed to push. Fixing history is the user's job — offer the amend/rebase
+  plan, do not run it unasked.
+- **WARN** for `/Users/<name>` paths, new symlinks that point outside the repo
+  (they dangle on a fresh machine and their content is not backed up), and
+  new hook scripts. Name each with file and line. These do not block push.
+- **PASS** otherwise.
+
+**Output format:**
+```markdown
+## 🔍 Backup Review — origin/main..HEAD
+
+| 항목 | 결과 |
+|------|------|
+| 미push 커밋 | N개 (YYYY-MM-DD ~ YYYY-MM-DD) |
+| 변경 파일 | N개 (+A / -D) |
+| gitleaks | ✅ no leaks / ❌ N leaks / ❌ 미설치 |
+| 패턴 grep | ✅ 0건 / ⚠️ N건 (경로) / ❌ N건 (자격증명 의심) |
+| 판정 | ✅ PASS / ⚠️ WARN / ❌ BLOCK |
+
+### 변경 요약
+- [파일 그룹별 한 줄: 무엇이 왜 바뀌었는지]
+
+### 주의 (WARN 항목)
+- [파일:행 — 내용 — 차단 사유 아님]
+
+판정이 PASS/WARN이면 `/backup push`로 진행 가능. BLOCK이면 push 금지.
+```
+
+---
+
+### `/backup push`
+
+Push local commits to the **PUBLIC** remote. Irreversible in practice: once
+pushed, content is world-readable and may be cached or forked even if
+force-removed later.
+
+**Preconditions — all three, no exceptions:**
+1. `/backup review` ran **in this conversation**, on the same HEAD, and its
+   verdict was PASS or WARN. If it has not run, run it now and show the result
+   before the gate. If HEAD moved since the review (a `/backup now` or nightly
+   commit landed), re-run review.
+2. The verdict was not BLOCK.
+3. The user answers the gate below with an explicit yes. Silence, "ok?", or a
+   request to "just push" made *before* the review was shown do not count.
+
+**Gate — ask, then wait:**
+```markdown
+⚠️ 공개 저장소(`temeraire97/dotfiles`)로 push합니다. 되돌릴 수 없습니다.
+
+| 항목 | 값 |
+|------|-----|
+| 대상 | origin/main ← local main |
+| 커밋 | N개 (`abc1234` ~ `def5678`) |
+| 리뷰 판정 | ✅ PASS / ⚠️ WARN (N건: [요약]) |
+
+push 하시겠습니까? (yes/no)
+```
+
+**Actions (only after yes):**
+```bash
+SRC="$(chezmoi source-path)"
+
+# [1] Guard: HEAD must still be what was reviewed
+git -C "$SRC" rev-parse HEAD
+
+# [2] Guard: never force, never push a non-main branch by accident
+git -C "$SRC" branch --show-current          # must print: main
+
+# [3] Push
+git -C "$SRC" push origin main
+
+# [4] Confirm
+git -C "$SRC" status -sb                     # expect: ## main...origin/main (no [ahead])
+```
+
+Never use `--force`, `--force-with-lease`, or `-u` to a different remote. If the
+push is rejected (non-fast-forward), stop and report — someone else pushed to
+the public repo, and merging that is a human decision.
+
+**Output format:**
+```markdown
+## 🚀 Backup Pushed
+
+| 항목 | 결과 |
+|------|------|
+| push | ✅ origin/main ← N개 커밋 (`abc1234`..`def5678`) |
+| 상태 | `## main...origin/main` — 동기화됨 |
 ```
 
 ---
@@ -176,7 +308,8 @@ then `chezmoi init --apply <remote>`, which runs the `.chezmoiscripts/` bootstra
 
 ### `/backup diff`
 
-Show what would change, without changing anything.
+Show what would change, without changing anything. For committed-but-unpushed
+history use `/backup review` instead.
 
 **Actions:**
 ```bash
