@@ -3,7 +3,8 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "ANTHROPIC_CUSTOM_MODEL_OPTION": "claude-opus-4-8[1m]",
     "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME": "Opus 4.8 (1M context)",
-    "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION": "Opus 4.8 with 1M context window - for long sessions with large codebases"
+    "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION": "Opus 4.8 with 1M context window - for long sessions with large codebases",
+    "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION": "1000"
   },
   "permissions": {
     "allow": [
