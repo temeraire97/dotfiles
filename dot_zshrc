@@ -2,6 +2,12 @@
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
+# --- Java (JDK 21, /usr/libexec/java_home 으로 탐색; 미설치 시 조용히 건너뜀) ---
+if JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null)"; then
+  export JAVA_HOME
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
 # --- zsh-autosuggestions (히스토리 기반, → 로 수락) ---
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
