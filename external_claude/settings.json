@@ -103,14 +103,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/context-mode-cache-heal.mjs\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/caveman-activate.js\"",
             "timeout": 5,
             "statusMessage": "Loading caveman mode..."
@@ -155,7 +147,7 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "atlassian@claude-plugins-official": true,
     "vercel@claude-plugins-official": true,
-    "context-mode@context-mode": true,
+    "context-mode@context-mode": false,
     "lua-lsp@claude-plugins-official": true,
     "caveman@caveman": true,
     "impeccable@impeccable": true,
