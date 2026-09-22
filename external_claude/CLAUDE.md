@@ -13,7 +13,8 @@ Not optional. User verify manually. Build commands:
 
 ## Model Routing
 
-- ✅ **Delegate heavy implementation work to Sonnet subagents.** Spawn `executor` (or `tdd-executor` for `[TDD]` tasks, `build-fixer` for build/type errors) for multi-file or multi-step changes. Small, well-scoped edits can be made directly.
+- ✅ **Delegate heavy implementation work to Sonnet subagents.** 신규 코드 작성과 동작 변경은 **무조건 `tdd-executor`** (테스트 먼저, red 확인, green, 커밋). `[TDD]` 태그 유무와 무관하게 기본값이다. 일반 `executor`는 테스트로 검증할 대상이 없는 작업에만: 설정 파일과 문서, 파일 이동과 이름 변경, 주석 정리, 스크립트 단순 실행, 빌드 설정 tweak. `build-fixer`는 build/type 오류. Small, well-scoped edits can be made directly.
+- ✅ **구현 후 리뷰로 TDD를 대체하지 않는다.** 리뷰(security-reviewer, code-reviewer)는 TDD 위에 추가로 돌리는 것이지, 테스트 없이 구현하고 리뷰로 메우는 순서 금지.
 - ✅ **Haiku = one-shot lookup / single-pass only.** Use Haiku-tier agents (`architect-low`, `code-reviewer-low`, `security-reviewer-low`) for single-pass read/lookup/review. The `writer` agent (Haiku) is the one sanctioned Haiku editor, and ONLY for documentation. Never give a Haiku agent multi-step or code-mutating work.
 
 ## Simple Fix Fast-Path (간단 수정은 main 직접)
