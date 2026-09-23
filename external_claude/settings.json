@@ -6,6 +6,10 @@
     "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION": "Opus 4.8 with 1M context window - for long sessions with large codebases",
     "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION": "1000"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "mcp__pencil",
@@ -43,6 +47,15 @@
             "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/caveman-mode-tracker.js\"",
             "timeout": 5,
             "statusMessage": "Tracking caveman mode..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/git-master-inject.js\"",
+            "timeout": 10
           }
         ]
       }
@@ -126,6 +139,18 @@
           {
             "type": "command",
             "command": "[ -n \"$SUPERSET_HOME_DIR\" ] && [ -x \"$SUPERSET_HOME_DIR/hooks/notify.sh\" ] && SUPERSET_AGENT_ID=claude \"$SUPERSET_HOME_DIR/hooks/notify.sh\" || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/git-master-guard.js\"",
+            "timeout": 10
           }
         ]
       }
