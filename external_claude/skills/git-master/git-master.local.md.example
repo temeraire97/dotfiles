@@ -1,0 +1,18 @@
+# git-master.local (template)
+
+CodeCommit 비공개 값 템플릿이다. 이 파일을 같은 폴더에 `git-master.local.md`로 복사한 뒤 값을 채운다.
+`git-master.local.md`는 `*.local.md` 패턴으로 gitignore/백업에서 제외되므로 실제 비밀값은 그쪽에만 둔다.
+CodeCommit을 쓰지 않는 동안에는 아무것도 만들지 않아도 된다.
+
+값을 셸에서 export 형태로 두면 명령에 그대로 쓸 수 있다:
+
+```bash
+export CC_PROFILE=<aws-profile-name>     # CodeCommit 저장소가 있는 AWS 프로파일
+export CC_REPO=<repository-name>         # CodeCommit repository 이름
+export CC_IAM_USER=<iam-user-name>       # CLI merge 시 머지 커밋 author로 남는 IAM 사용자
+```
+
+변수 설명:
+- `CC_PROFILE`: `aws codecommit ... --profile $CC_PROFILE`에 쓰는 프로파일. 저장소는 이 계정에만 존재한다.
+- `CC_REPO`: `repositoryName=$CC_REPO`에 쓰는 저장소 이름.
+- `CC_IAM_USER`: CLI 3-way merge가 남기는 머지 커밋 author. 개인 계정으로 남기려면 codecommit.md의 Local Merge 옵션을 쓴다.

@@ -17,36 +17,9 @@ Not optional. User verify manually. Build commands:
 - ✅ **구현 후 리뷰로 TDD를 대체하지 않는다.** 리뷰(security-reviewer, code-reviewer)는 TDD 위에 추가로 돌리는 것이지, 테스트 없이 구현하고 리뷰로 메우는 순서 금지.
 - ✅ **Haiku = one-shot lookup / single-pass only.** Use Haiku-tier agents (`architect-low`, `code-reviewer-low`, `security-reviewer-low`) for single-pass read/lookup/review. The `writer` agent (Haiku) is the one sanctioned Haiku editor, and ONLY for documentation. Never give a Haiku agent multi-step or code-mutating work.
 
-## Simple Fix Fast-Path (간단 수정은 main 직접)
+## Git 규칙 (정본: git-master skill)
 
-**간단한 수정은 Branch Discipline의 예외로 worktree/브랜치/PR/검증 파이프라인을 생략하고 main에 직접 commit + push한다.**
-
-이는 BRANCHING 정책이다. worktree 오버헤드 없이 main에 직접 배포된다.
-
-**적용 대상:**
-- 변경량: 약 1-2줄 이내
-- 위험도: 명백하고 저위험
-  - 오타 수정
-  - 한 줄 버그 수정
-  - 빌드/설정 스크립트 경미한 tweak
-  - 주석·문서 소소한 수정
-- 영향: 단일 파일, 명백한 의도
-
-**제외 (반드시 worktree→브랜치→PR→검증 사용):**
-- 다중 파일 변경 (3파일 이상)
-- 로직·동작 변경
-- 마이그레이션, 대규모 리팩토링
-- 설계 결정 필요
-- **판단 불명확 시 → 무조건 브랜치 사용 (보수적 원칙)**
-
-**커밋 규칙 (동일 유지):**
-- 한국어 Conventional Commits 형식: `type(scope): message`
-- scope 필수 (생략 금지)
-- AI/Claude fingerprint 절대 금지 (Co-Authored-By 등)
-
-**배포 고지:**
-- Main 직접 push는 CI/배포를 트리거할 수 있음
-- 배포 영향이 있으면 **push 전에 사용자에게 고지** 필수
+git 커밋/브랜치/PR/merge/push 규칙의 정본은 `~/.claude/skills/git-master/` skill이다. Simple Fix Fast-Path(간단 수정 main 직행), Branch Discipline, Conventional Commits, fingerprint 절대 금지, 배포 트리거 확인, CodeCommit 워크플로우까지 모두 거기에 있다. git 작업 시 그 skill을 따른다(SKILL.md, CodeCommit은 codecommit.md).
 
 ## Package Manager Rules
 
