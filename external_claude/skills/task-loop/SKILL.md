@@ -250,6 +250,23 @@ If any BLOCK exists → Step 7. Otherwise → Step 8.
    - 3rd round: STOP. Report to user and hand over the decision.
 ```
 
+### Step 7.5. History hygiene before PR (2026-09-28)
+
+The Unit-of-Work branch is local until Step 8, so its history is still editable. Before pushing:
+
+```
+1. git log --format='%h %s' main..HEAD  → check every commit:
+   - test-only commit typed `feat` → retype to `test`
+   - bug fix with test + impl in one commit → split into `test` then `fix`
+   - `fix` commit that edits a test → move the test edit to a preceding `test` commit with a reason
+   - empty body on a fix commit → add the red evidence line
+2. Rewrite with reset --soft / cherry-pick or rebase -x (never interactive), keeping order.
+3. Verify: tree of the new tip == tree of the old tip (`git diff <old> <new>` empty), full test suite green.
+4. Record the old tip in a backup ref until the PR is merged, then delete it.
+```
+
+Sub-agent branches land on the UoW branch with rebase + ff merge only (no merge commits, never to main). Check commit typing at that moment; anything missed is fixed here.
+
 ### Step 8. Create PR
 
 ```bash
