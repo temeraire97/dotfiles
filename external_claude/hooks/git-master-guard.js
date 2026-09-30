@@ -22,6 +22,11 @@
 // Commands that write a commit or a PR body.
 const COMMIT_LIKE = /\bgit\s+(commit|merge)\b|\bgh\s+pr\s+(create|edit|merge)\b|--author=/i;
 
+// PR merge는 git-master scripts/pr-merge.sh(조상 검사 + 체크 확인 + --match-head-commit)로만 한다.
+// 직접 `gh pr merge`는 main push CI 생략 전제를 깨므로 막는다. 스크립트 호출 문자열이 있으면 허용.
+const PR_MERGE_DIRECT = /\bgh\s+pr\s+merge\b/i;
+const PR_MERGE_SCRIPT = /pr-merge\.sh/;
+
 // Fingerprint patterns.
 const FINGERPRINTS = [
   /Co-?Authored-?By:\s*(Claude|Anthropic)/i,
@@ -58,6 +63,13 @@ process.stdin.on('end', () => {
     const data = JSON.parse(raw);
     if (!data || data.tool_name !== 'Bash') return allow();
     const cmd = (data.tool_input && data.tool_input.command) || '';
+    if (PR_MERGE_DIRECT.test(cmd) && !PR_MERGE_SCRIPT.test(cmd)) {
+      return deny(
+        'git-master: gh pr merge 직접 호출은 금지입니다. ' +
+        '~/.claude-work/skills/git-master/scripts/pr-merge.sh <PR번호> [-R owner/repo] 로 merge하세요 ' +
+        '(origin/main 조상 검사, 체크 SUCCESS 확인, --match-head-commit). 체크 실패 상태 merge는 사용자 승인 후 --allow-failed-checks 사유.'
+      );
+    }
     if (!COMMIT_LIKE.test(cmd)) return allow();
     if (FINGERPRINTS.some(re => re.test(cmd))) {
       return deny(

@@ -72,14 +72,19 @@ feature/xxx, fix/xxx, chore/xxx
 
 ### 예외: Simple Fix Fast-Path (간단 수정은 main 직접)
 
-Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치를 쓴다.
+Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치를 쓴다. 2026-09-30 개정: PR 하나가 CI를 PR과 main에서 두 번 돌리므로(9월 실측 main push CI의 75%가 순수 중복) 검증 가치가 없는 변경은 PR을 열지 않는다. 근거 `~/uwellnow/docs/PR-주기와-CI-중복-리서치-2026-09-30.md`.
 
-경로 1 (자동 eligible, 질문 없이 main 직행) - 다음을 모두 만족:
-- 변경량: 약 1-2줄 이내
-- 위험도: 명백하고 저위험 (오타, 한 줄 버그, 빌드/설정 스크립트 경미한 tweak, 주석/문서 소소한 수정)
-- 영향: 단일 파일, 명백한 의도
+경로 1 (자동 eligible, 질문 없이 main 직행) - 다음 중 하나:
+- **문서 전용**: 변경 파일이 전부 `*.md`, `docs/**`, 코드 주석뿐. 줄 수 제한 없음. 각 repo `ci.yml`의 `paths-ignore: ['**.md', 'docs/**']`로 CI가 돌지 않는다.
+- **경미한 코드 수정**: 1~2줄, 단일 파일, 오타 또는 명백한 한 줄 버그.
 
-동작: 브랜치/PR 생략, main에서 직접 수정 → 커밋 → push
+동작: main에서 수정 → 커밋 → push. PR 생략.
+
+제외 (크기와 무관하게 항상 브랜치+PR):
+- `.github/workflows/**`, `lefthook*.yml`, `commitlint.config.*`, `dependabot.yml` (CI 자체를 바꾸는 파일)
+- 의존성과 lock 파일(`*.lock`, `pyproject.toml`, `package.json`)
+- 인프라(`live/**`, `modules/**`)
+- 코드 3줄 이상
 
 경로 2 (사용자 판단, trivial하지 않은 fix) - `fix` 타입이지만 로직/동작 변경, 범위 불명확 등이면 먼저 질문:
 > "fix 작업입니다. main에서 바로 커밋할까요, 아니면 브랜치+PR로 진행할까요?"
@@ -87,7 +92,7 @@ Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치
 - 브랜치 선택 또는 무응답 → Branch Discipline 대로 브랜치+PR
 
 반드시 브랜치 사용 (예외 아님):
-- 다중 파일 변경 (3파일 이상)
+- 다중 파일 코드 변경 (3파일 이상)
 - 로직/동작 변경 (범위 불명확)
 - 마이그레이션, 대규모 리팩토링
 - 설계 결정 필요
@@ -115,19 +120,60 @@ GitHub Flow를 쓴다:
 3. 정기적으로 push
 4. PR → Review → Merge to main → Deploy
 
-GitHub은 로컬 merge가 필요 없다. 웹 UI 또는 CLI로 직접 merge한다. Merge 방식은 3-way merge(`--merge`)가 기본이다.
+GitHub은 로컬 merge가 필요 없다. Merge 방식은 3-way merge(`--merge`)가 기본이다. **merge는 반드시 `scripts/pr-merge.sh`로 한다.** `gh pr merge` 직접 호출은 guard hook이 막는다.
 
 ```bash
 # 1. PR 생성
 gh pr create --title "feat(scope): 변경 요약" --body "..." --base main
 
-# 2. PR merge (3-way merge)
-gh pr merge <PR-NUMBER> --merge
+# 2. PR merge (조상 검사 + 체크 확인 + --match-head-commit)
+~/.claude-work/skills/git-master/scripts/pr-merge.sh <PR-NUMBER> [-R owner/repo]
 
 # 3. 로컬 동기화 & 브랜치 삭제
 git checkout main && git pull
 git branch -d <branch-name>
 ```
+
+### 4.1 PR 단위 (2026-09-30)
+
+같은 repo에서 같은 날 생기는 소규모 변경(이름 변경, 문서, 설정, 주석, 100줄 미만 refactor)은 브랜치 하나에 커밋 여러 개로 쌓고 **PR 1개**로 낸다. 커밋은 변경마다 나눈다(revert와 bisect 단위 유지). 기본은 repo당 하루 PR 1개이고, 예외 PR은 본문에 사유를 쓴다.
+
+별도 PR로 내는 기준:
+- 배포 대상이 다른 변경(infra `live/**` 스택이 다른 apply 대상, web 배포와 무관한 문서)
+- 합계 300줄 또는 10파일 초과
+- 리뷰 관점이 다른 변경(기능 추가와 이름 변경)
+
+에이전트 병렬 작업: worktree 여러 개가 같은 repo를 건드리면 각자 PR을 열지 말고 통합 브랜치 하나에 merge한 뒤 PR 1개로 낸다(5절 준용).
+
+### 4.2 merge 직전 조상 검사 (2026-09-30)
+
+`scripts/pr-merge.sh`가 하는 일:
+1. `git merge-base --is-ancestor origin/main <head>` 로 브랜치가 main을 포함하는지 확인. 뒤처졌으면 중단하고 `git rebase origin/main` 안내(PR CI 재실행 후 다시).
+2. `gh pr checks`가 전부 SUCCESS인지 확인. 실패나 진행 중이면 중단. 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`(사유는 PR 코멘트로 남는다).
+3. `gh pr merge --merge --match-head-commit <head>` 로 검사한 커밋만 merge.
+
+이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push CI를 생략해도 검증 공백이 없다. Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
+
+dependabot PR은 grouped update로 받고, 여러 개가 열리면 하나 merge 후 나머지는 `@dependabot rebase` 뒤 merge한다.
+
+### 4.3 워크플로 트리거 표준 (2026-09-30)
+
+| 시점 | 도는 것 | 안 도는 것 |
+|---|---|---|
+| PR (`pull_request`, `types: [opened, synchronize, reopened, ready_for_review]`, 잡에 `if: github.event.pull_request.draft == false`) | lint, typecheck, unit test, 빌드, E2E(web), Docker 빌드(api), plan(infra, 변경 스택만), Linux 컴파일과 desktopTest(app) | 배포, 릴리스, macOS 빌드 |
+| main push | 배포, release-please, 캐시 적재 잡, api ECR push(있을 때) | 검증 잡 전체(4.2 조건 하에 생략) |
+| 스케줄 | mutation(주 1회), app iOS 시뮬레이터 빌드(주 1회), dependabot grouped(주 1회) | |
+| 수동 `workflow_dispatch` | terraform apply, release, mutation 강제, iOS 빌드 강제 | |
+| 공통 | `paths-ignore: ['**.md', 'docs/**']`, `concurrency` (PR은 `cancel-in-progress: true`, main은 false), `timeout-minutes` | |
+
+전환 순서: (1) pr-merge.sh 도입 → (2) 2주간 main ci.yml에 트리 비교 잡만 남겨 `HEAD^{tree} == HEAD^2^{tree}` 100% 확인 → (3) main ci.yml 검증 잡 제거.
+
+### 4.4 GitHub Actions 예산 (2026-09-30)
+
+org `uwellnow`는 GitHub Free, private repo 무료 2,000분/월(macOS는 달러 환산 약 10배). 주 450분, 하루 65분 기준. 잡 단위 1분 올림이라 짧은 잡을 쪼개지 않는다.
+- CI를 많이 돌리는 작업(PR 다수, infra plan 반복, iOS 빌드) 전에 사용자에게 분 소모를 먼저 알린다.
+- 주간 확인(월요일): org Settings > Billing > Usage. `gh api` 조회는 `admin:org` scope 필요.
+- 누적이 주 예산 150%를 넘으면 그 주는 Fast-Path와 묶기를 우선하고 문서 변경은 PR을 열지 않는다.
 
 ---
 
