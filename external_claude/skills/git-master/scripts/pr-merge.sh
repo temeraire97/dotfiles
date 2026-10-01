@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # git-master: PR merge는 이 스크립트로만 한다.
 # 1) 브랜치가 origin/main을 포함하는지(조상 검사) 확인. 뒤처졌으면 중단하고 rebase 안내.
-# 2) PR 체크가 전부 SUCCESS인지 확인. 실패나 미완료면 중단.
+# 2) PR 체크가 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나인지 확인. 실패나 미완료면 중단.
 # 3) gh pr merge --merge --match-head-commit <head> 로 검사한 커밋만 merge.
-# 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push CI를 생략해도 검증 공백이 없다.
+# 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push의 게이트 잡이 검증을 건너뛴다(SKILL.md 4.3).
 set -euo pipefail
+# macOS 기본 bash 3.2 호환 두 가지:
+# - 빈 배열을 set -u 아래에서 "${arr[@]}"로 펼치면 unbound variable(4.4 미만). ${arr[@]+"${arr[@]}"}로 쓴다.
+# - UTF-8 로케일에서 $VAR 바로 뒤에 한글이 오면 첫 바이트가 변수명에 붙는다. ${VAR}로 경계를 준다.
 usage() { echo "usage: pr-merge.sh <PR번호> [-R owner/repo] [--allow-failed-checks '<사유>']" >&2; exit 2; }
 [ $# -ge 1 ] || usage
 PR="$1"; shift
@@ -17,17 +20,17 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-read -r HEAD BASE STATE < <(gh pr view "$PR" "${REPO_ARGS[@]}" --json headRefOid,baseRefName,state -q '"\(.headRefOid) \(.baseRefName) \(.state)"')
+read -r HEAD BASE STATE < <(gh pr view "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json headRefOid,baseRefName,state -q '"\(.headRefOid) \(.baseRefName) \(.state)"')
 [ "$STATE" = "OPEN" ] || { echo "PR #$PR 상태가 $STATE. 중단." >&2; exit 1; }
 
 git fetch -q origin "$BASE"
 if ! git merge-base --is-ancestor "origin/$BASE" "$HEAD" 2>/dev/null; then
-  echo "PR #$PR 브랜치가 origin/$BASE보다 뒤처져 있다. main CI를 생략하려면 트리가 같아야 한다." >&2
+  echo "PR #$PR 브랜치가 origin/${BASE}보다 뒤처져 있다. main CI를 생략하려면 트리가 같아야 한다." >&2
   echo "브랜치에서: git fetch origin && git rebase origin/$BASE && git push --force-with-lease  (PR CI 통과 후 다시 실행)" >&2
   exit 1
 fi
 
-CHECKS=$(gh pr checks "$PR" "${REPO_ARGS[@]}" --json name,state -q '.[] | "\(.state) \(.name)"' 2>/dev/null || true)
+CHECKS=$(gh pr checks "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json name,state -q '.[] | "\(.state) \(.name)"' 2>/dev/null || true)
 if [ -z "$CHECKS" ]; then
   echo "체크 없음(문서 전용 paths-ignore 등). 계속." >&2
 else
@@ -38,9 +41,9 @@ else
       echo "중단. 사용자 승인이 있으면 --allow-failed-checks '<사유>' 로 재실행(사유는 PR 코멘트로 남는다)." >&2
       exit 1
     fi
-    gh pr comment "$PR" "${REPO_ARGS[@]}" --body "체크 실패 상태에서 merge. 사유: $ALLOW_FAILED" >/dev/null
+    gh pr comment "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --body "체크 실패 상태에서 merge. 사유: $ALLOW_FAILED" >/dev/null
   fi
 fi
 
-gh pr merge "$PR" "${REPO_ARGS[@]}" --merge --match-head-commit "$HEAD"
+gh pr merge "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --merge --match-head-commit "$HEAD"
 echo "merged PR #$PR at $HEAD (tree == PR CI tree)"
