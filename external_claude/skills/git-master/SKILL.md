@@ -149,24 +149,38 @@ git branch -d <branch-name>
 
 `scripts/pr-merge.sh`가 하는 일:
 1. `git merge-base --is-ancestor origin/main <head>` 로 브랜치가 main을 포함하는지 확인. 뒤처졌으면 중단하고 `git rebase origin/main` 안내(PR CI 재실행 후 다시).
-2. `gh pr checks`가 전부 SUCCESS인지 확인. 실패나 진행 중이면 중단. 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`(사유는 PR 코멘트로 남는다).
+2. `gh pr checks`가 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나인지 확인. 실패나 진행 중이면 중단. 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`(사유는 PR 코멘트로 남는다).
 3. `gh pr merge --merge --match-head-commit <head>` 로 검사한 커밋만 merge.
 
-이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push CI를 생략해도 검증 공백이 없다. Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
+이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push에서 검증을 다시 돌리지 않아도 공백이 없다. 조건이 실제로 지켜졌는지는 main push의 게이트 잡이 매번 확인한다(4.3). Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
 
 dependabot PR은 grouped update로 받고, 여러 개가 열리면 하나 merge 후 나머지는 `@dependabot rebase` 뒤 merge한다.
 
-### 4.3 워크플로 트리거 표준 (2026-09-30)
+### 4.3 워크플로 트리거 표준 (2026-09-30, 2026-10-01 개정)
 
 | 시점 | 도는 것 | 안 도는 것 |
 |---|---|---|
-| PR (`pull_request`, `types: [opened, synchronize, reopened, ready_for_review]`, 잡에 `if: github.event.pull_request.draft == false`) | lint, typecheck, unit test, 빌드, E2E(web), Docker 빌드(api), plan(infra, 변경 스택만), Linux 컴파일과 desktopTest(app) | 배포, 릴리스, macOS 빌드 |
-| main push | 배포, release-please, 캐시 적재 잡, api ECR push(있을 때) | 검증 잡 전체(4.2 조건 하에 생략) |
-| 스케줄 | mutation(주 1회), app iOS 시뮬레이터 빌드(주 1회), dependabot grouped(주 1회) | |
-| 수동 `workflow_dispatch` | terraform apply, release, mutation 강제, iOS 빌드 강제 | |
+| PR (`pull_request`, `types: [opened, synchronize, reopened, ready_for_review]`, 잡에 `if: github.event.pull_request.draft == false`) | lint, typecheck, unit test, 빌드, E2E(web), Docker 빌드(api), plan(infra, 변경 스택만), Linux 컴파일과 desktopTest(app) | 배포, 릴리스. macOS 빌드는 iOS 관련 경로가 바뀐 PR에서만(app `ios.yml`) |
+| main push | 게이트 잡, 배포(web은 CI 성공 뒤 `workflow_run`), release-please, `cache-warm.yml`(의존성 파일이 바뀐 push만) | 검증 잡(게이트가 생략 가능으로 판정한 경우만) |
+| 릴리스 태그 `v*` | app iOS 시뮬레이터 빌드 | |
+| 스케줄 | mutation(주 1회), dependabot(주 1회) | 그 밖의 스케줄. 새로 넣으려면 사용자 승인부터 받는다 |
+| 수동 `workflow_dispatch` | terraform apply, release, mutation 강제, iOS 빌드 강제, cache-warm | |
 | 공통 | `paths-ignore: ['**.md', 'docs/**']`, `concurrency` (PR은 `cancel-in-progress: true`, main은 false), `timeout-minutes` | |
 
-전환 순서: (1) pr-merge.sh 도입 → (2) 2주간 main ci.yml에 트리 비교 잡만 남겨 `HEAD^{tree} == HEAD^2^{tree}` 100% 확인 → (3) main ci.yml 검증 잡 제거.
+**게이트 잡**: main push의 검증 잡을 워크플로에서 지우지 않고, 게이트 잡(6~7초)이 돌릴지 말지를 정한다. 아래 세 조건이 모두 참일 때만 검증 잡을 건너뛴다.
+1. HEAD가 merge commit이다(`HEAD^2` 존재).
+2. `HEAD^{tree}` 와 `HEAD^2^{tree}` 가 같다(뒤처진 브랜치를 merge하지 않았다).
+3. `HEAD^2` 의 check-run이 1개 이상이고 전부 completed이며 결론이 success, skipped, neutral 중 하나다.
+
+하나라도 어긋나면(main 직행 커밋, 뒤처진 브랜치 merge, 체크 실패 상태 merge, 체크 없음) 전체 검증을 돈다. 검증 잡의 조건은 `needs: gate` 와 `if: !cancelled() && (github.event_name != 'push' || needs.gate.outputs.verify == 'true')` 이다. 게이트만 성공해도 워크플로 결론은 success라서 `workflow_run` 배포는 그대로 발동한다. 새 repo에 CI를 붙일 때도 이 형태를 쓴다(참고 구현: web, api, app의 `ci.yml`).
+
+**캐시**: main 범위 캐시는 신뢰 트리거(push, `workflow_dispatch`, schedule)에서 돈 실행만 쓸 수 있고, PR이 쓴 캐시는 그 PR 안에서만 읽힌다. 게이트가 검증을 건너뛰면 main에 캐시를 적재하는 실행이 없어지므로 `cache-warm.yml`을 둔다.
+- 트리거는 의존성 파일(lock, 버전 카탈로그, 빌드 설정)이 바뀐 main push와 수동 실행. 스케줄은 쓰지 않는다.
+- 캐시 키가 PR 잡과 같아야 한다. setup-gradle은 키에 잡 id가 들어가므로 cache-warm의 잡 id를 PR 검증 잡과 같게 맞춘다.
+- PR에서는 복원만 하고 저장은 main에서 한다(`actions/cache/restore` 와 `save` 분리).
+- Docker `type=gha` 캐시는 PR 범위라 재사용되지 않고 내보내기 시간만 든다. 쓰지 않는다.
+- prd 권한(`id-token: write`)이 있는 릴리스 워크플로는 최상위에 `cache-mode: none` 을 둔다.
+- 7일 넘게 쓰이지 않은 캐시는 지워진다. PR이 오래 없었으면 `gh workflow run cache-warm.yml` 로 다시 적재한다.
 
 ### 4.4 GitHub Actions 예산 (2026-09-30)
 
