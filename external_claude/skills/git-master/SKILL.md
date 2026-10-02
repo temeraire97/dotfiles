@@ -149,7 +149,7 @@ git branch -d <branch-name>
 
 `scripts/pr-merge.sh`가 하는 일:
 1. `git merge-base --is-ancestor origin/main <head>` 로 브랜치가 main을 포함하는지 확인. 뒤처졌으면 중단하고 `git rebase origin/main` 안내(PR CI 재실행 후 다시).
-2. `gh pr checks`가 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나인지 확인. 실패나 진행 중이면 중단. 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`(사유는 PR 코멘트로 남는다).
+2. PR 체크 확인(`gh pr view --json statusCheckRollup`). 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고 그중 SUCCESS가 1개 이상이어야 한다. 전부 SKIPPED면(draft 상태에서 돈 실행 등) 검증된 적이 없으므로 중단. 실패나 진행 중이면 중단. 체크가 하나도 없으면 등록 지연일 수 있어 15초 뒤 한 번 더 조회하고, 그때도 없을 때만 통과(문서 전용 `paths-ignore` 등). 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`로 실패나 SUCCESS 없음을 넘긴다(사유는 PR 코멘트로 남는다). 조회 실패는 이 옵션으로도 넘기지 않는다.
 3. `gh pr merge --merge --match-head-commit <head>` 로 검사한 커밋만 merge.
 
 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push에서 검증을 다시 돌리지 않아도 공백이 없다. 조건이 실제로 지켜졌는지는 main push의 게이트 잡이 매번 확인한다(4.3). Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
