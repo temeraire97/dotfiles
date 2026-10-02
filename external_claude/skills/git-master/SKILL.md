@@ -149,7 +149,7 @@ git branch -d <branch-name>
 
 `scripts/pr-merge.sh`가 하는 일:
 1. `git merge-base --is-ancestor origin/main <head>` 로 브랜치가 main을 포함하는지 확인. 뒤처졌으면 중단하고 `git rebase origin/main` 안내(PR CI 재실행 후 다시).
-2. PR 체크 확인(`gh pr view --json statusCheckRollup`). 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고 그중 SUCCESS가 1개 이상이어야 한다. 전부 SKIPPED면(draft 상태에서 돈 실행 등) 검증된 적이 없으므로 중단. 실패나 진행 중이면 중단. 체크가 하나도 없으면 등록 지연일 수 있어 15초 뒤 한 번 더 조회하고, 그때도 없을 때만 통과(문서 전용 `paths-ignore` 등). 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`로 실패나 SUCCESS 없음을 넘긴다(사유는 PR 코멘트로 남는다). 조회 실패는 이 옵션으로도 넘기지 않는다.
+2. PR 체크 확인(`gh pr view --json statusCheckRollup`). 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고 그중 GitHub Actions 체크의 SUCCESS가 1개 이상이어야 한다. 전부 SKIPPED거나(draft 상태에서 돈 실행 등) 외부 체크(Vercel 등)만 통과했으면 CI가 검증한 적이 없으므로 중단. 실패나 진행 중이면 중단. 체크가 하나도 없으면 등록 지연일 수 있어 15초 뒤 한 번 더 조회하고, 그때도 없으면 변경 파일을 본다. 문서(`*.md`, `docs/**`)만 바뀐 PR이면 통과하고, 그 밖의 파일이 있으면 중단한다(infra에서 plan 대상 경로 밖의 설정 파일만 바꾼 PR이 여기에 걸린다). 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`로 실패, SUCCESS 없음, 체크 없음을 넘긴다(사유는 PR 코멘트로 남는다). 조회 실패는 이 옵션으로도 넘기지 않는다. 판정 테스트는 `scripts/test-pr-merge.sh`(가짜 gh와 git, 12개 경우)이고 스크립트를 고치면 돌린다.
 3. `gh pr merge --merge --match-head-commit <head>` 로 검사한 커밋만 merge.
 
 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push에서 검증을 다시 돌리지 않아도 공백이 없다. 조건이 실제로 지켜졌는지는 main push의 게이트 잡이 매번 확인한다(4.3). Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
@@ -167,12 +167,13 @@ dependabot PR은 grouped update로 받고, 여러 개가 열리면 하나 merge 
 | 수동 `workflow_dispatch` | terraform apply, release, mutation 강제, iOS 빌드 강제, cache-warm | |
 | 공통 | `paths-ignore: ['**.md', 'docs/**']`, `concurrency` (PR은 `cancel-in-progress: true`, main은 false), `timeout-minutes` | |
 
-**게이트 잡**: main push의 검증 잡을 워크플로에서 지우지 않고, 게이트 잡(6~7초)이 돌릴지 말지를 정한다. 아래 세 조건이 모두 참일 때만 검증 잡을 건너뛴다.
+**게이트 잡**: main push의 검증 잡을 워크플로에서 지우지 않고, 게이트 잡(6~7초)이 돌릴지 말지를 정한다. 아래 네 조건이 모두 참일 때만 검증 잡을 건너뛴다.
 1. HEAD가 merge commit이다(`HEAD^2` 존재).
 2. `HEAD^{tree}` 와 `HEAD^2^{tree}` 가 같다(뒤처진 브랜치를 merge하지 않았다).
-3. `HEAD^2` 의 check-run이 1개 이상이고 전부 completed이며 결론이 success, skipped, neutral 중 하나다.
+3. `HEAD^2` 의 check-run이 전부 completed이고 결론이 success, skipped, neutral 중 하나다.
+4. 게이트 잡의 `required-checks`(그 워크플로의 검증 잡 이름 목록)가 `HEAD^2` 에서 전부 success다. skipped는 검증으로 치지 않는다(2026-10-02 추가).
 
-하나라도 어긋나면(main 직행 커밋, 뒤처진 브랜치 merge, 체크 실패 상태 merge, 체크 없음) 전체 검증을 돈다. 검증 잡의 조건은 `needs: gate` 와 `if: !cancelled() && (github.event_name != 'push' || needs.gate.outputs.verify == 'true')` 이다. 게이트만 성공해도 워크플로 결론은 success라서 `workflow_run` 배포는 그대로 발동한다. 새 repo에 CI를 붙일 때도 이 형태를 쓴다(참고 구현: web, api, app의 `ci.yml`).
+하나라도 어긋나면(main 직행 커밋, 뒤처진 브랜치 merge, 체크 실패 상태 merge, 체크 없음, draft로만 돌아 전부 skipped) 전체 검증을 돈다. 검증 잡의 `name`을 바꾸거나 잡을 추가하면 `required-checks`도 같이 고친다. 어긋나면 main에서 매번 전체 검증이 돌아 분을 쓴다(판정 이유는 게이트 실행 요약에 남는다). 검증 잡의 조건은 `needs: gate` 와 `if: !cancelled() && (github.event_name != 'push' || needs.gate.outputs.verify == 'true')` 이다. 게이트만 성공해도 워크플로 결론은 success라서 `workflow_run` 배포는 그대로 발동한다. 판정 스크립트는 `uwellnow/.github`의 reusable workflow `main-gate.yml`(v0.5.0부터)에 한 벌만 있고, 그 repo의 CI가 `scripts/test-main-gate.sh`로 12개 경우를 검사한다. 서비스 repo의 gate 잡은 `uses:`로 호출하고 `required-checks`만 넘긴다. 새 repo에 CI를 붙일 때도 이 형태를 쓴다(참고: web, api, app의 `ci.yml`).
 
 **캐시**: main 범위 캐시는 신뢰 트리거(push, `workflow_dispatch`, schedule)에서 돈 실행만 쓸 수 있고, PR이 쓴 캐시는 그 PR 안에서만 읽힌다. 게이트가 검증을 건너뛰면 main에 캐시를 적재하는 실행이 없어지므로 `cache-warm.yml`을 둔다.
 - 트리거는 의존성 파일(lock, 버전 카탈로그, 빌드 설정)이 바뀐 main push와 수동 실행. 스케줄은 쓰지 않는다.

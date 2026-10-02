@@ -2,8 +2,10 @@
 # git-master: PR merge는 이 스크립트로만 한다.
 # 1) 브랜치가 origin/main을 포함하는지(조상 검사) 확인. 뒤처졌으면 중단하고 rebase 안내.
 # 2) PR 체크 확인. 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고
-#    그중 SUCCESS가 1개 이상이어야 한다(전부 SKIPPED면 검증된 적이 없으므로 중단). 실패나 미완료면 중단.
-#    체크가 하나도 없으면 등록 지연일 수 있어 한 번 더 조회하고, 그때도 없을 때만 "체크 없음"으로 통과.
+#    그중 GitHub Actions 체크의 SUCCESS가 1개 이상이어야 한다(전부 SKIPPED거나 외부 체크만 통과했으면
+#    CI가 검증한 적이 없으므로 중단). 실패나 미완료면 중단.
+#    체크가 하나도 없으면 등록 지연일 수 있어 한 번 더 조회한다. 그때도 없으면 변경 파일을 본다.
+#    문서(*.md, docs/**)만 바뀐 PR이면 "체크 없음"으로 통과하고, 그 밖의 파일이 있으면 중단한다.
 # 3) gh pr merge --merge --match-head-commit <head> 로 검사한 커밋만 merge.
 # 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push의 게이트 잡이 검증을 건너뛴다(SKILL.md 4.3).
 set -euo pipefail
@@ -47,16 +49,18 @@ fi
 # 체크 상태는 statusCheckRollup으로 조회한다. gh pr checks는 체크가 없을 때도 0이 아닌 코드로 끝나서
 # "체크 없음"과 "조회 실패"를 구분할 수 없다. 같은 워크플로의 같은 이름 체크가 한 커밋에 여러 번 돌았으면
 # (draft 해제, 재오픈 등) 가장 늦게 시작한 것만 본다. gh pr checks와 같은 기준이다.
-# 출력은 한 줄에 "<STATE> <이름>". 끝나지 않은 체크는 PENDING으로 적는다.
+# 출력은 한 줄에 "<STATE> <종류> <이름>". 끝나지 않은 체크는 PENDING으로 적는다.
+# 종류는 워크플로에서 나온 체크면 actions, 그 밖(Vercel 같은 외부 앱, commit status)이면 external이다.
 CHECKS_JQ='[.statusCheckRollup[] | {
     key: ((.workflowName // "") + "/" + (.name // .context // "?")),
     name: (.name // .context // "?"),
+    kind: (if (.workflowName // "") != "" then "actions" else "external" end),
     at: (.startedAt // .createdAt // ""),
     state: (if .__typename == "StatusContext" then (.state // "PENDING")
             elif (.status // "") != "COMPLETED" then "PENDING"
             elif (.conclusion // "") == "" then "PENDING"
             else .conclusion end)
-  }] | group_by(.key) | map(max_by(.at)) | .[] | "\(.state) \(.name)"'
+  }] | group_by(.key) | map(max_by(.at)) | .[] | "\(.state) \(.kind) \(.name)"'
 query_checks() {
   gh pr view "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json statusCheckRollup -q "$CHECKS_JQ"
 }
@@ -76,27 +80,48 @@ if [ -z "$CHECKS" ]; then
   fi
 fi
 
+PROBLEM=""
 if [ -z "$CHECKS" ]; then
-  echo "체크 없음(문서 전용 paths-ignore 등). 계속." >&2
+  # 체크가 없어도 되는 경우는 워크플로의 paths-ignore에 걸리는 문서 전용 변경뿐이다. 그 밖의 파일이 바뀌었는데
+  # 체크가 없으면 등록이 늦었거나 워크플로가 돌지 않은 것이므로 통과시키지 않는다.
+  if ! FILES=$(gh pr view "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json files -q '.files[].path'); then
+    echo "변경 파일 조회 실패(gh 인증, 네트워크 등). 체크가 없어도 되는 PR인지 알 수 없어 중단." >&2
+    exit 1
+  fi
+  NON_DOC=""
+  while IFS= read -r f; do
+    case "$f" in
+      ""|*.md|docs/*) ;;
+      *) NON_DOC="${NON_DOC}${f}"$'\n' ;;
+    esac
+  done <<EOF_FILES
+$FILES
+EOF_FILES
+  if [ -z "$NON_DOC" ]; then
+    echo "체크 없음(문서 전용 변경). 계속." >&2
+  else
+    echo "체크가 하나도 없는데 문서가 아닌 파일이 바뀌었다(등록 지연이거나 워크플로가 돌지 않음):" >&2
+    printf '%s' "$NON_DOC" | head -10 >&2
+    PROBLEM="문서가 아닌 변경인데 체크가 없음"
+  fi
 else
   BAD=$(echo "$CHECKS" | grep -vE '^(SUCCESS|SKIPPED|NEUTRAL) ' || true)
-  SUCCESS_COUNT=$(echo "$CHECKS" | grep -c '^SUCCESS ' || true)
-  PROBLEM=""
+  SUCCESS_COUNT=$(echo "$CHECKS" | grep -c '^SUCCESS actions ' || true)
   if [ -n "$BAD" ]; then
     echo "통과하지 않은 체크:" >&2; echo "$BAD" >&2
     PROBLEM="통과하지 않은 체크가 있음"
   elif [ "$SUCCESS_COUNT" -eq 0 ]; then
-    echo "SUCCESS인 체크가 하나도 없다(전부 SKIPPED 또는 NEUTRAL). draft 상태에서 돈 실행이면 검증된 적이 없다:" >&2
+    echo "GitHub Actions 체크 중 SUCCESS가 하나도 없다(전부 SKIPPED거나 외부 체크만 통과). draft 상태에서 돈 실행이면 검증된 적이 없다:" >&2
     echo "$CHECKS" >&2
-    PROBLEM="SUCCESS인 체크가 없음"
+    PROBLEM="GitHub Actions 체크의 SUCCESS가 없음"
   fi
-  if [ -n "$PROBLEM" ]; then
-    if [ -z "$ALLOW_FAILED" ]; then
-      echo "중단. 사용자 승인이 있으면 --allow-failed-checks '<사유>' 로 재실행(사유는 PR 코멘트로 남는다)." >&2
-      exit 1
-    fi
-    gh pr comment "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --body "체크 미통과 상태에서 merge(${PROBLEM}). 사유: $ALLOW_FAILED" >/dev/null
+fi
+if [ -n "$PROBLEM" ]; then
+  if [ -z "$ALLOW_FAILED" ]; then
+    echo "중단. 사용자 승인이 있으면 --allow-failed-checks '<사유>' 로 재실행(사유는 PR 코멘트로 남는다)." >&2
+    exit 1
   fi
+  gh pr comment "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --body "체크 미통과 상태에서 merge(${PROBLEM}). 사유: $ALLOW_FAILED" >/dev/null
 fi
 
 gh pr merge "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --merge --match-head-commit "$HEAD"
