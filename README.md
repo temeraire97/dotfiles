@@ -26,9 +26,9 @@ apply 시 run 스크립트가 자동 수행:
 ├── Brewfile                          # brew bundle dump 캡처
 ├── dot_zshrc / dot_zshenv            # zsh 설정 (실파일 관리)
 ├── external_claude/                  # ~/.claude 페이로드 — CLAUDE.md, settings.json,
-│                                     #   statusline-wrapper.sh, skills/, agents/, hooks/
+│                                     #   statusline-wrapper.sh, skills/, agents/, hooks/, output-styles/
 ├── external_nvim/                    # ~/.config/nvim 페이로드 — init.lua, lua/, lazy-lock.json 등
-├── private_dot_claude/               # ~/.claude 심링크 6개 (symlink_*.tmpl → external_claude/)
+├── private_dot_claude/               # ~/.claude 심링크 7개 (symlink_*.tmpl → external_claude/)
 ├── dot_config/symlink_nvim.tmpl      # ~/.config/nvim → external_nvim/
 ├── dot_local/bin/symlink_node.tmpl   # ~/.local/bin/node → fnm default
 ├── .chezmoiscripts/                  # 복원 자동화 (run_once / run_onchange)

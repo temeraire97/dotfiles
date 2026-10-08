@@ -11,6 +11,7 @@ downloads
 file-history
 history.jsonl
 hooks
+output-styles
 plugins
 projects
 session-env

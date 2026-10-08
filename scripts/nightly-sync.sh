@@ -24,11 +24,11 @@ unpushed() {
 # [1] gitleaks smoke — [W11] 툴 부재/파손 조기 검출
 command -v gitleaks >/dev/null || { notify "gitleaks 미설치 — 백업 중단"; exit 1; }
 
-# [2] 심링크 무결성 assert + 파손 시 fallback 캡처 — [B5] claude 6개 + ★nvim 1개
+# [2] 심링크 무결성 assert + 파손 시 fallback 캡처 — [B5] claude 7개 + ★nvim 1개
 BROKEN=0
 HEALED=0
 CAPTURED=1   # 기본 실패값 — 캡처 확인 전엔 apply 금지
-for f in CLAUDE.md settings.json statusline-wrapper.sh skills agents hooks; do
+for f in CLAUDE.md settings.json statusline-wrapper.sh skills agents hooks output-styles; do
   if [ ! -L "$HOME/.claude/$f" ] || [ "$(readlink "$HOME/.claude/$f")" != "$SRC/external_claude/$f" ]; then
     # 캡처 먼저 — 순서 역전 절대 금지 (아래 apply 주석 참조)
     rsync -aL --exclude 'memory/' --exclude '*.local.md' --exclude '*.local.json' \
