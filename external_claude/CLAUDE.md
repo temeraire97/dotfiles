@@ -48,3 +48,4 @@ User types `/graphify` → invoke Skill tool with `skill: "graphify"` before any
 - **Caveman/terse 모드 — 도구 호출 구조는 압축 금지:** prose/텍스트 응답만 terse 적용; 도구 호출 XML, 코드, 커밋 메시지, PR 본문은 항상 완전한 형식 유지.
 - **CSS 단위 무조건 rem:** 사용자가 px로 말해도 코드엔 rem 환산 (÷16, 예: 800px→50rem); vw/vh/% 는 그대로 유지.
 - **Worktree 무조건:** 신규 브랜치 작업은 `git worktree add -b <branch> ../<repo>-<topic> main`; 메인 체크아웃에 직접 브랜치+편집 금지.
+- **완료 주장 전 검증(2026-10-08):** 완료, 수정됨, 통과라고 말하기 전에 그것을 증명하는 명령을 새로 실행하고 exit code와 전체 출력을 읽은 뒤 근거를 붙여 보고한다. "should work", "아마 통과" 금지. 확인 안 한 주장은 남은 작업이다. subagent에게 시킨 일의 보고도 같은 기준이고, 수치는 실제 출력에서 가져온다.
