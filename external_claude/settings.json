@@ -217,5 +217,7 @@
   "theme": "dark",
   "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
-  "autoInstallEnabledPlugins": true
+  "autoInstallEnabledPlugins": true,
+  "model": "claude-fable-5-1[1m]",
+  "outputStyle": "attention-ko"
 }
