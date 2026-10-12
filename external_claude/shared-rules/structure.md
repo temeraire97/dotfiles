@@ -1,29 +1,29 @@
-# 코드 배치와 이름 공용 규칙
+# Shared Rules: Code Placement and Naming
 
-모든 프로젝트에 적용한다. 프로젝트 전용 규칙이 있으면 그 규칙이 우선한다.
+Applies to every project. Project-specific rules take precedence.
 
-## 디렉터리 배치
+## Directory placement
 
-근거: Toss Frontend Fundamentals 「함께 수정되는 파일을 같은 디렉토리에 두기」, my-frontend 「Organize by feature/domain」.
+Source: Toss Frontend Fundamentals "함께 수정되는 파일을 같은 디렉토리에 두기", my-frontend "Organize by feature/domain".
 
-- 함께 수정되고 함께 삭제되는 파일은 한 디렉터리에 둔다.
-- 새 파일을 만들기 전에 import 하는 쪽을 먼저 센다. 한 도메인만 쓰면 그 도메인 폴더에 둔다.
-- 여러 도메인이 쓰는 코드는 쓰는 쪽 도메인 폴더에 넣지 않는다. 파일 하나면 공통 최상위에 두고, 함께 바뀌는 묶음이면 기능 이름 폴더로 둔다.
-- 종류별 폴더(`utils/`, `hooks/`, `constants/`, `http/`)를 도메인 밖에 새로 만들지 않는다.
-- 도메인 폴더 안 파일 이름에는 도메인 접두어를 다시 붙이지 않는다(`order/api.ts`, `order/orderApi.ts` 아님).
-- 다른 도메인 폴더를 import 하는 것은 허용한다. 경로에 그 도메인이 드러나게 두고, 의존을 숨기려고 파일을 최상위로 올리지 않는다.
+- Files that change and get deleted together live in one directory.
+- Before creating a file, count its importers. Used by one domain only: put it in that domain folder.
+- Code used by several domains never goes inside one consumer's domain folder. A single file goes at the shared top level. A group that changes together gets a feature-named folder.
+- Never create type-based folders (`utils/`, `hooks/`, `constants/`, `http/`) outside a domain.
+- No domain prefix on files inside a domain folder (`order/api.ts`, not `order/orderApi.ts`).
+- Importing another domain's folder is allowed. Keep the domain visible in the path. Never hoist a file to the top level to hide the dependency.
 
-## 이름
+## Naming
 
-- 새 폴더는 한 단어 소문자, 여러 단어면 케밥(`app-shell`). 카멜 폴더를 새로 만들지 않는다.
-- 파일 이름은 그 프로젝트의 기존 관례를 따른다.
+- New folders: one lowercase word, or kebab-case for several (`app-shell`). Never create camelCase folders.
+- File names follow the project's existing convention.
 
-## 서브에이전트에게 맡길 때
+## Delegating to subagents
 
-- 명세에 목표 디렉터리 트리를 직접 적는다. "선례를 따르라"만 쓰지 않는다.
-- Explore, Plan 에이전트는 CLAUDE.md 와 이 규칙을 읽지 않는다. 이 둘에게는 필요한 규칙을 명세에 적는다.
-- 파일을 만들거나 옮기는 작업이 끝나면 `frontend-fundamentals:reviewer` 로 변경분을 검사한다.
+- Write the target directory tree into the spec. Never just say "follow precedent".
+- Explore and Plan agents skip CLAUDE.md and these rules. Put the needed rules in their spec.
+- After creating or moving files, review the diff with `frontend-fundamentals:reviewer`.
 
-## 글
+## Writing
 
-- 코드, 주석, 문서, 커밋 메시지에 em dash, en dash, 가운뎃점, 화살표 문자를 쓰지 않는다.
+- No em dash, en dash, middle dot (U+00B7), or arrow characters in code, comments, docs, or commit messages.
