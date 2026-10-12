@@ -2,15 +2,15 @@
 
 ## Build Commands
 
-**NEVER run `pnpm build`, `npm run build`, or any production build during dev.** Not optional. User verifies manually. Builds are slow, pollute the terminal, and the user decides when to build.
+Do not run production builds (`pnpm build`, `npm run build`). The user runs them: builds are slow, pollute the terminal, and the user decides when.
 
-**ONLY use `pnpm dev` or type-check commands if explicitly asked.**
+Do not start dev servers (`pnpm dev`) unless asked. Type checks and tests are part of verifying work; run them.
 
 ## Model Routing
 
-- **Delegate heavy implementation to Sonnet subagents.** New code and behavior changes ALWAYS go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. Small, well-scoped edits can be made directly.
+- **Delegate heavy implementation to subagents.** New code and behavior changes ALWAYS go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. Small, well-scoped edits can be made directly.
 - **Review never replaces TDD.** security-reviewer and code-reviewer run on top of TDD. Implementing without tests and covering with review is forbidden.
-- **Haiku = one-shot lookup / single-pass only.** Haiku agents (`architect-low`, `code-reviewer-low`, `security-reviewer-low`) for single-pass read/lookup/review. `writer` (Haiku) is the only sanctioned Haiku editor, docs only. Never give Haiku multi-step or code-mutating work.
+- **Single-pass agents.** `architect-low`, `code-reviewer-low`, `security-reviewer-low` do one read, lookup, or review pass. `writer` edits documentation only. Do not give them multi-step or code-mutating work.
 
 ## Git (canonical: git-master skill)
 
@@ -30,7 +30,7 @@ Check `packageManager` in `package.json`, then use the matching command:
 ## Skills
 
 - Frontend work: follow `~/.claude/skills/my-frontend/`.
-- **graphify** (`~/.claude/skills/graphify/SKILL.md`): any input to knowledge graph. When the user types `/graphify`, invoke Skill with `skill: "graphify"` before anything else.
+- **graphify** (`~/.claude/skills/graphify/SKILL.md`): any input to knowledge graph.
 
 ## Work Style
 
@@ -40,7 +40,7 @@ Check `packageManager` in `package.json`, then use the matching command:
 - **Terse mode never compresses tool-call structure:** terse applies to prose only. Tool calls, code, commit messages, and PR bodies stay complete.
 - **CSS units always rem:** convert px to rem in code even when the user says px (divide by 16, e.g. 800px is 50rem). Keep vw/vh/% as is.
 - **Always use a worktree:** new branch work uses `git worktree add -b <branch> ../<repo>-<topic> main`. Never branch and edit in the main checkout.
-- **Verify before claiming done (2026-10-08):** before saying done, fixed, or passing, run a fresh command that proves it, read the exit code and full output, and report with evidence. No "should work" or "probably passes". Unverified claims are remaining work. Subagent reports meet the same bar, and numbers come from actual output.
+- **Verify before claiming done:** before saying done, fixed, or passing, run a fresh command that proves it, read the exit code and full output, and report with evidence. No "should work" or "probably passes". Unverified claims are remaining work. Subagent reports meet the same bar, and numbers come from actual output.
 
 ## Shared Rules
 

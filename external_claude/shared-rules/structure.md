@@ -22,7 +22,7 @@ Source: Toss Frontend Fundamentals "함께 수정되는 파일을 같은 디렉�
 
 - Write the target directory tree into the spec. Never just say "follow precedent".
 - Explore and Plan agents skip CLAUDE.md and these rules. Put the needed rules in their spec.
-- After creating or moving files, review the diff with `frontend-fundamentals:reviewer`.
+- In frontend repos, after creating or moving files, review the diff with `frontend-fundamentals:reviewer`.
 
 ## Writing
 

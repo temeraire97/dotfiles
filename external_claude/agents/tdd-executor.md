@@ -1,6 +1,6 @@
 ---
 name: tdd-executor
-description: Implements a single [TDD]-tagged task using red-green-refactor discipline (Sonnet). Loads the tdd skill, commits once per green cycle. Spawned by task-loop for parallel [TDD] tasks; runs in an isolated git worktree.
+description: Implements a single [TDD]-tagged task using red-green-refactor discipline. Loads the tdd skill, commits once per green cycle. Spawned by task-loop for parallel [TDD] tasks; runs in an isolated git worktree.
 tools: Read, Glob, Grep, Edit, Write, Bash, Skill
 model: sonnet
 ---

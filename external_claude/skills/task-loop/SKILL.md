@@ -37,7 +37,7 @@ Unit of Work
    │     └─ Yes → [FIX] TaskCreate → implement → git-master commit → lightweight re-verify (code-reviewer-low)
    │          └─ Max recursion depth 2. On the 3rd round, report to user and request a decision.
    ├── Create PR (gh pr create)
-   └── Merge PR + delete branch (gh pr merge --merge --delete-branch)
+   └── Merge PR with ~/.claude-work/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
 ```
 
 ---
@@ -71,7 +71,7 @@ Apply Task Loop if **any** of the following hold:
 | **Lightweight Re-verify** | `code-reviewer-low` alone | After each `[FIX]` commit | Pass/fail verdict |
 
 **Principles**:
-- All implementation — even one-line config or a single annotation — is delegated to a Sonnet `executor`. The main loop NEVER calls Edit/Write itself (enforced by the `block-main-impl` hook + the Model Routing rule in CLAUDE.md).
+- All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop NEVER calls Edit/Write itself (enforced by the `block-main-impl` hook + the Model Routing rule in CLAUDE.md).
 - Agent choice: simple/bounded tasks → `executor`; composite-logic / multi-file / reactive-async chains → `executor-high` (both Sonnet). 1-2 file mechanical tweaks → `cavecrew-builder`.
 - The verification team **MUST run in parallel** — multiple Agent calls in a single message.
 
@@ -117,7 +117,7 @@ TaskCreate × N
 - Task IDs reflect **dependency order**, not creation order
 - Always include the verification task as a separate item
 - **Mark dependencies explicitly** so the head agent can identify parallelizable groups
-- **Mark test-worthy tasks `[TDD]`** — tag a task `[TDD]` when an upstream source (`to-prd`'s *Testing Decisions*, or the issue's *Acceptance criteria*) designates its module for testing. If no upstream source exists, the head agent confirms the `[TDD]` set with the user **here, at Step 3** — never later, never inside a parallel executor.
+- **Tag every behavior-changing task `[TDD]`.** Untagged tasks are config, docs, and file moves only. Upstream sources (`to-prd`'s *Testing Decisions*, or the issue's *Acceptance criteria*) seed the behavior list; if none exist, the head agent writes it **here, at Step 3** — never later, never inside a parallel executor.
 - **Never split test-writing into its own task.** A `[TDD]` task carries its tests AND implementation together. Separating "write tests" from "write code" is horizontal slicing — explicitly forbidden by the `tdd` skill.
 - **`[TDD]` task → N commits** (one per green cycle) — the sole exception to "1 Task = 1 Commit". Each green is exactly the "smallest logically separable unit" the commit rule already requires.
 
@@ -150,7 +150,7 @@ T1 (sequential, scaffolds the module)
 ```
 1. TaskUpdate(in_progress)
 2. Implement
-   - Non-[TDD] task → spawn a Sonnet `executor` (it owns the Edit/Write).
+   - Non-[TDD] task (nothing to test) → spawn `executor` (it owns the Edit/Write).
        Brief it to Read/Grep dependent files first and follow existing patterns
        (no novel inventions). The main loop specs the task, then reviews + commits.
    - [TDD] task → drive implementation with the `tdd` skill, §2-4 ONLY
@@ -250,7 +250,7 @@ If any BLOCK exists → Step 7. Otherwise → Step 8.
    - 3rd round: STOP. Report to user and hand over the decision.
 ```
 
-### Step 7.5. History hygiene before PR (2026-09-28)
+### Step 7.5. History hygiene before PR
 
 The Unit-of-Work branch is local until Step 8, so its history is still editable. Before pushing:
 
@@ -311,7 +311,7 @@ git pull --ff-only
 graphify update .
 ```
 
-Aligns with the project-level CLAUDE.md rule: "After modifying code, run `graphify update .` to keep the graph current". AST-only, no API cost. A stale graph causes future analyses (god nodes, communities, isolated/island detection) to mislead — run this **every time** a Unit of Work merges, even for tiny PRs. If `graphify` reports "No code-graph topology changes detected", that is expected for pure-deletion / style-only PRs and counts as success.
+If the project's CLAUDE.md requires `graphify update .` after code changes, run it when a Unit of Work merges. AST-only, no API cost. A stale graph causes future analyses (god nodes, communities, isolated/island detection) to mislead — run this **every time** a Unit of Work merges, even for tiny PRs. If `graphify` reports "No code-graph topology changes detected", that is expected for pure-deletion / style-only PRs and counts as success.
 
 ---
 
@@ -384,7 +384,7 @@ Aligns with the project-level CLAUDE.md rule: "After modifying code, run `graphi
    ▢ (Recurse, max 2 rounds)
 ▢ Create PR (gh pr create)
 ▢ Wait for user approval
-▢ On approval: gh pr merge --merge --delete-branch
+▢ On approval: ~/.claude-work/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
 ▢ Refresh knowledge graph (git checkout main && git pull && graphify update .)
 ▢ Write retrospective / summary
 ```

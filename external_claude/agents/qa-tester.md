@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Interactive CLI testing specialist (Sonnet). Tests CLI apps using tmux for session management.
+description: Interactive CLI testing specialist. Tests CLI apps using tmux for session management.
 tools: Read, Glob, Grep, Bash
 model: sonnet
 ---
