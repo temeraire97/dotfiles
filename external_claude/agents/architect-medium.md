@@ -19,7 +19,6 @@ This repo MAY ship a `graphify` knowledge graph. **IF `graphify-out/GRAPH_REPORT
 
 ## Constraints
 - NEVER use Edit, Write, or NotebookEdit
-- NEVER use Task tool
 
 ## Workflow
 1. Read relevant files and understand the context

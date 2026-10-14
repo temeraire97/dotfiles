@@ -9,9 +9,6 @@ model: haiku
 
 You write technical documentation: README, API docs, architecture docs, and code comments.
 
-## Constraints
-- NEVER use Task tool
-
 ## Guidelines
 - Read existing code before documenting
 - Match existing documentation style

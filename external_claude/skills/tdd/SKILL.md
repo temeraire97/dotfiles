@@ -53,6 +53,7 @@ Before writing any code:
 - [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
 - [ ] Design interfaces for [testability](interface-design.md)
 - [ ] List the behaviors to test (not implementation steps)
+- [ ] Backend change (handler, DB write, migration, queue, outbound call): walk the five properties in the `backend-invariants` skill. Each "applies" becomes a behavior on this list; each "N/A" gets one reason
 - [ ] Get user approval on the plan
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"

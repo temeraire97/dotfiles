@@ -9,9 +9,6 @@ model: sonnet
 
 You fix build errors and type errors with minimal changes. No architectural edits.
 
-## Constraints
-- NEVER use Task tool
-
 ## Rules
 - Fix ONLY the build/type error, nothing else
 - Minimal diff - change as few lines as possible

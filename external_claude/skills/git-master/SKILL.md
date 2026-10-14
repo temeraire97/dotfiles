@@ -125,7 +125,7 @@ GitHub은 로컬 merge가 필요 없다. Merge 방식은 3-way merge(`--merge`)�
 gh pr create --title "feat(scope): 변경 요약" --body "..." --base main
 
 # 2. PR merge (조상 검사 + 체크 확인 + --match-head-commit)
-~/.claude-work/skills/git-master/scripts/pr-merge.sh <PR-NUMBER> [-R owner/repo]
+~/.claude/skills/git-master/scripts/pr-merge.sh <PR-NUMBER> [-R owner/repo]
 
 # 3. 로컬 동기화 & 브랜치 삭제
 git checkout main && git pull

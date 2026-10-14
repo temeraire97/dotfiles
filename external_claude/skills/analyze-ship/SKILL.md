@@ -60,4 +60,4 @@ Each stage = one `Skill` call. **Each stage's output feeds the next.** Approval 
 3. **Skipping allowed** — if the user says "skip grill" / "PRD already exists", drop that stage and move on
 4. **Chain outputs** — explicitly pass the prior stage's result as input to the next skill
 5. **Abortable** — if the user stops at any gate, end there
-6. **Orchestrator-only** — analyze-ship and its sub-skills NEVER edit files from the main loop; all implementation is delegated to Sonnet executors inside `task-loop` (per CLAUDE.md Model Routing). The main loop drives the pipeline and reviews.
+6. **Orchestrator-only** — analyze-ship and its sub-skills NEVER edit files from the main loop; all implementation is delegated to `tdd-executor` (behavior changes) or `executor` (config, docs, moves) inside `task-loop`, per CLAUDE.md Model Routing. The main loop drives the pipeline and reviews.

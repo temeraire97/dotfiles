@@ -67,6 +67,15 @@
             "command": "[ -n \"$SUPERSET_HOME_DIR\" ] && [ -x \"$SUPERSET_HOME_DIR/hooks/notify.sh\" ] && SUPERSET_AGENT_ID=claude \"$SUPERSET_HOME_DIR/hooks/notify.sh\" || true"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/backend-invariants-gate.js\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -149,6 +158,28 @@
           {
             "type": "command",
             "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/git-master-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/backend-invariants-inject.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^(tdd-executor|executor|executor-high|build-fixer)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/backend-invariants-gate.js\"",
             "timeout": 10
           }
         ]

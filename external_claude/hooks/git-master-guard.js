@@ -66,7 +66,7 @@ process.stdin.on('end', () => {
     if (PR_MERGE_DIRECT.test(cmd) && !PR_MERGE_SCRIPT.test(cmd)) {
       return deny(
         'git-master: gh pr merge 직접 호출은 금지입니다. ' +
-        '~/.claude-work/skills/git-master/scripts/pr-merge.sh <PR번호> [-R owner/repo] 로 merge하세요 ' +
+        '~/.claude/skills/git-master/scripts/pr-merge.sh <PR번호> [-R owner/repo] 로 merge하세요 ' +
         '(origin/main 조상 검사, 체크 SUCCESS 확인, --match-head-commit). 체크 실패 상태 merge는 사용자 승인 후 --allow-failed-checks 사유.'
       );
     }

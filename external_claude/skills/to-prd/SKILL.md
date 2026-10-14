@@ -57,6 +57,16 @@ Do NOT include specific file paths or code snippets. They may end up being outda
 
 Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
 
+## Invariants
+
+Only when the feature touches a backend (HTTP handler, DB write, migration, queue, outbound integration). One line per property, applied or N/A with a reason. See the `backend-invariants` skill for the questions behind each.
+
+- Idempotency:
+- Concurrency:
+- Atomicity:
+- Consistency:
+- Traceability:
+
 ## Testing Decisions
 
 A list of testing decisions that were made. Include:

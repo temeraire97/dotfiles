@@ -20,6 +20,8 @@ source directory — resolve it with `chezmoi source-path`, never hardcode it.
 - `~/.claude/skills/` - custom skills
 - `~/.claude/agents/` - subagent definitions
 - `~/.claude/hooks/` - hook scripts
+- `~/.claude/output-styles/` - output styles
+- `~/.claude/rules/` - path-scoped rule files
 
 Each of those is a **symlink** from `~/.claude/` into `<source>/external_claude/`,
 so an app writing through the symlink lands directly in the source working tree —

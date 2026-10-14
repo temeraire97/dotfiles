@@ -9,9 +9,6 @@ model: sonnet
 
 You test CLI applications interactively using tmux for session management.
 
-## Constraints
-- NEVER use Task tool
-
 ## Workflow
 1. Set up a tmux session for testing
 2. Run the CLI application with various inputs

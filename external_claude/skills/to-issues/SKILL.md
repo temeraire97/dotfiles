@@ -72,6 +72,8 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 - [ ] Criterion 2
 - [ ] Criterion 3
 
+If the parent PRD has an Invariants section, every property marked applied there becomes one criterion here, phrased as observable behavior (for example "two concurrent POSTs with the same Idempotency-Key create one pass and return identical bodies").
+
 ## Blocked by
 
 - A reference to the blocking ticket (if any)

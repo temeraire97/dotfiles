@@ -37,7 +37,7 @@ Unit of Work
    │     └─ Yes → [FIX] TaskCreate → implement → git-master commit → lightweight re-verify (code-reviewer-low)
    │          └─ Max recursion depth 2. On the 3rd round, report to user and request a decision.
    ├── Create PR (gh pr create)
-   └── Merge PR with ~/.claude-work/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
+   └── Merge PR with ~/.claude/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
 ```
 
 ---
@@ -64,15 +64,15 @@ Apply Task Loop if **any** of the following hold:
 
 | Team | Members | When deployed | Output |
 |---|---|---|---|
-| **Implementation Team (sequential)** | `executor` agent (Sonnet) | Each dependent task | Code + commit |
-| **Implementation Team (parallel)** | Multiple `executor` agents in one message | Group of independent tasks | Code from N agents, merged |
+| **Implementation Team (sequential)** | `tdd-executor` for behavior changes; `executor` for config, docs, moves | Each dependent task | Code + commit |
+| **Implementation Team (parallel)** | Multiple `tdd-executor` / `executor` agents in one message | Group of independent tasks | Code from N agents, merged |
 | **Head Re-verification** | Main agent | After every parallel group | Cross-file consistency report, drift fix list |
 | **Verification Team** | `code-reviewer` + `architect-medium` + `WebSearch`, parallel | After all tasks complete | Issue report (OK/WARN/BLOCK) |
 | **Lightweight Re-verify** | `code-reviewer-low` alone | After each `[FIX]` commit | Pass/fail verdict |
 
 **Principles**:
-- All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop NEVER calls Edit/Write itself (enforced by the `block-main-impl` hook + the Model Routing rule in CLAUDE.md).
-- Agent choice: simple/bounded tasks → `executor`; composite-logic / multi-file / reactive-async chains → `executor-high` (both Sonnet). 1-2 file mechanical tweaks → `cavecrew-builder`.
+- All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop does not call Edit/Write itself; it follows the Model Routing rule in CLAUDE.md. No hook enforces this yet: `hooks/block-main-impl.js` is unwired and marked experimental.
+- Agent choice for tasks with nothing to test: single-file config or docs: `executor`; multi-file moves or dependency-ordered config changes: `executor-high`; 1-2 file mechanical tweaks: `cavecrew-builder`. Anything that changes behavior is `tdd-executor` regardless of size.
 - The verification team **MUST run in parallel** — multiple Agent calls in a single message.
 
 ---
@@ -91,10 +91,12 @@ Apply Task Loop if **any** of the following hold:
 ### Step 2. Create branch
 
 ```bash
-git checkout main
-git pull --ff-only
-git checkout -b {descriptive-name}
+git -C <repo> pull --ff-only origin main
+git worktree add -b {descriptive-name} ../<repo>-{topic} main
+cd ../<repo>-{topic}
 ```
+
+Never branch and edit in the main checkout (CLAUDE.md Work Style, git-master section 3).
 
 **Branch naming rules**:
 - ❌ Forbidden: Git Flow prefixes like `feat/`, `fix/`, `chore/`, `docs/`
@@ -297,9 +299,11 @@ gh pr create --base main --head {branch} --title "type(scope): summary" --body "
 ### Step 9. Merge + cleanup (on approval)
 
 ```bash
-gh pr merge {N} --merge --delete-branch
-# Deletes local and remote branches automatically
+~/.claude/skills/git-master/scripts/pr-merge.sh {N}   # ancestor check, CI checks, --match-head-commit
+git checkout main && git pull --ff-only && git branch -d {branch}
 ```
+
+Calling the GitHub merge command directly is denied by the git-master guard hook.
 
 **Warning**: only merge **after explicit user approval**. Auto-merge is forbidden. Only run it when the user issues an explicit command like `/git-master merge`.
 
@@ -339,9 +343,8 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
 - 1 PR = 1 Unit of Work (no per-task PRs)
 - When the same work spans multiple repos: **same branch name in each repo + an independent PR per repo**
 - Trust verification team output **recursively**, but escalate past 2 rounds
-- Every task → spawn an executor (Sonnet); the main loop orchestrates and never edits files directly
+- Every task is delegated to a subagent (`tdd-executor` or `executor`); the main loop orchestrates and never edits files directly
 - Maximize parallel groups when possible, but err on the sequential side when in doubt
-- Prefer defensive declarations (`@Immutable`, `updatable=false`, `final`, `readonly`, etc.)
 - Commit messages: WHY first, WHAT later. Keep the first line ~50 chars.
 
 ---
@@ -355,7 +358,7 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
 | `tdd-executor` | The agent Task Loop spawns for **parallel** `[TDD]` tasks (Step 4b). Has the `Skill` tool, so it loads `tdd` itself inside a worktree-isolated context and commits per green. |
 | `to-prd` / `to-issues` | Run **before** Task Loop. They produce the PRD and the per-issue Acceptance criteria that `[TDD]` tasks inherit as their seed behavior list. |
 | `design-first` | Runs **before** Task Loop when complex design is needed. Task Loop owns the execution phase. |
-| `simplify` / `audit` / `polish` | Can be invoked **inside Task Loop's verification phase** as additional review layers. |
+| built-in `simplify`, `impeccable audit`, `impeccable polish` | Can be invoked inside Task Loop's verification phase as additional review layers. |
 | `find-skills` | Discovers auxiliary skills for specific problems encountered mid-loop. |
 
 ---
@@ -371,8 +374,8 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
 ▢ For each Task / group:
    ▢ Mark in_progress
    ▢ Implement
-     - Sequential: spec task → spawn `executor` (Sonnet) → review
-     - Parallel group: spawn N executors in one message
+     - Sequential: spec task, spawn `tdd-executor` (or `executor` when nothing to test), review
+     - Parallel group: spawn N subagents in one message
    ▢ (Parallel group only) Head re-verification across modified files
    ▢ git-master commit (Korean, scope required, no fingerprint)
    ▢ Mark completed
@@ -384,7 +387,7 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
    ▢ (Recurse, max 2 rounds)
 ▢ Create PR (gh pr create)
 ▢ Wait for user approval
-▢ On approval: ~/.claude-work/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
+▢ On approval: ~/.claude/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
 ▢ Refresh knowledge graph (git checkout main && git pull && graphify update .)
 ▢ Write retrospective / summary
 ```

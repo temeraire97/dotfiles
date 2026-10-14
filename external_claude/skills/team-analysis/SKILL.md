@@ -32,7 +32,7 @@ Spawn 4 `Agent`s **concurrently in a single message**. Each owns one axis.
 
 ### Agent A — Researcher (2026 best practice)
 - `subagent_type`: `Explore` or `general-purpose` + `WebSearch`
-- **WebSearch queries MUST include `2026`** (confirm current recommended patterns)
+- WebSearch queries include the current year, so results reflect current recommended patterns
 - Output: industry standards, framework official guidance, deprecated-pattern warnings
 
 ### Agent B — Structure Analyst (code structure)

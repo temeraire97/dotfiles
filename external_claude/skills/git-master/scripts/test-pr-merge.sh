@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # pr-merge.sh의 체크 판정을 가짜 gh와 가짜 git으로 검사한다. 실제 저장소나 네트워크를 건드리지 않는다.
-# 실행: bash ~/.claude-work/skills/git-master/scripts/test-pr-merge.sh
+# 실행: bash ~/.claude/skills/git-master/scripts/test-pr-merge.sh
 set -euo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WORK=$(mktemp -d)

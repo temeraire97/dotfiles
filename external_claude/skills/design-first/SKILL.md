@@ -8,8 +8,6 @@ description: |
 
 # Design-First Development Workflow
 
-> **Language Instruction**: All agent outputs MUST be written in **Korean**.
-
 ## Overview
 
 복잡한 작업 전 구조화된 분석을 수행하는 3단계 프로세스입니다.
