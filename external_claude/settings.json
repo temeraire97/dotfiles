@@ -29,6 +29,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "model": "claude-fable-5-1[1m]",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -36,16 +37,6 @@
           {
             "type": "command",
             "command": "[ -n \"$SUPERSET_HOME_DIR\" ] && [ -x \"$SUPERSET_HOME_DIR/hooks/notify.sh\" ] && SUPERSET_AGENT_ID=claude \"$SUPERSET_HOME_DIR/hooks/notify.sh\" || true"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/caveman-mode-tracker.js\"",
-            "timeout": 5,
-            "statusMessage": "Tracking caveman mode..."
           }
         ]
       },
@@ -117,16 +108,6 @@
           {
             "type": "command",
             "command": "[ -n \"$SUPERSET_HOME_DIR\" ] && [ -x \"$SUPERSET_HOME_DIR/hooks/notify.sh\" ] && SUPERSET_AGENT_ID=claude \"$SUPERSET_HOME_DIR/hooks/notify.sh\" || true"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/run-node.sh\" \"$HOME/.claude/hooks/caveman-activate.js\"",
-            "timeout": 5,
-            "statusMessage": "Loading caveman mode..."
           }
         ]
       },
@@ -204,7 +185,6 @@
     "vercel@claude-plugins-official": true,
     "context-mode@context-mode": false,
     "lua-lsp@claude-plugins-official": true,
-    "caveman@caveman": true,
     "impeccable@impeccable": true,
     "frontend-fundamentals@toss": true
   },
@@ -240,6 +220,7 @@
       }
     }
   },
+  "outputStyle": "attention-ko",
   "language": "Korean, 한국어",
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
@@ -248,7 +229,5 @@
   "theme": "dark",
   "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
-  "autoInstallEnabledPlugins": true,
-  "model": "claude-fable-5-1[1m]",
-  "outputStyle": "attention-ko"
+  "autoInstallEnabledPlugins": true
 }

@@ -71,7 +71,7 @@ Apply Task Loop if **any** of the following hold:
 | **Lightweight Re-verify** | `code-reviewer-low` alone | After each `[FIX]` commit | Pass/fail verdict |
 
 **Principles**:
-- All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop does not call Edit/Write itself; it follows the Model Routing rule in CLAUDE.md. No hook enforces this yet: `hooks/block-main-impl.js` is unwired and marked experimental.
+- All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop does not edit code itself beyond one-line changes; it follows the Model Routing rule in CLAUDE.md. No hook enforces this.
 - Agent choice for tasks with nothing to test: single-file config or docs: `executor`; multi-file moves or dependency-ordered config changes: `executor-high`; 1-2 file mechanical tweaks: `cavecrew-builder`. Anything that changes behavior is `tdd-executor` regardless of size.
 - The verification team **MUST run in parallel** — multiple Agent calls in a single message.
 

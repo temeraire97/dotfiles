@@ -8,7 +8,7 @@ Do not start dev servers (`pnpm dev`) unless asked. Type checks and tests are pa
 
 ## Model Routing
 
-- **Delegate heavy implementation to subagents.** New code and behavior changes ALWAYS go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. Small, well-scoped edits can be made directly.
+- **Delegate heavy implementation to subagents.** New code and behavior changes ALWAYS go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. The main session edits code directly only when the change is one line or part of one line; adding a file or touching more than one line goes to a subagent. Docs and config files have no runtime side effects, so the main session may edit them directly.
 - **Review never replaces TDD.** security-reviewer and code-reviewer run on top of TDD. Implementing without tests and covering with review is forbidden.
 - **Single-pass agents.** `architect-low`, `code-reviewer-low`, `security-reviewer-low` do one read, lookup, or review pass. `writer` edits documentation only. Do not give them multi-step or code-mutating work.
 
