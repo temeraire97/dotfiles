@@ -29,3 +29,6 @@ private_dot_claude/projects/
 private_dot_claude/plugins/
 dot_claude/
 .claude.json
+
+# claude.ai 계정 스킬 동기화 캐시. Claude Code가 백그라운드로 재생성, 버킷명이 계정 식별자
+external_claude/skills/synced/
