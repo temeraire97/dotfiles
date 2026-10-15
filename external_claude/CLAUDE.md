@@ -8,13 +8,13 @@ Do not start dev servers (`pnpm dev`) unless asked. Type checks and tests are pa
 
 ## Model Routing
 
-- **Delegate heavy implementation to subagents.** New code and behavior changes ALWAYS go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. The main session edits code directly only when the change is one line or part of one line; adding a file or touching more than one line goes to a subagent. Docs and config files have no runtime side effects, so the main session may edit them directly.
+- **Delegate heavy implementation to subagents.** New code and behavior changes go to `tdd-executor` (test first, confirm red, green, commit), with or without a `[TDD]` tag. Plain `executor` only for work with nothing to test: config, docs, file moves and renames, comment cleanup, running scripts, build config tweaks. `build-fixer` for build/type errors. The main session edits code directly only when the change is one line or part of one line; adding a file or touching more than one line goes to a subagent. Docs and config files have no runtime side effects, so the main session may edit them directly.
 - **Review never replaces TDD.** security-reviewer and code-reviewer run on top of TDD. Implementing without tests and covering with review is forbidden.
 - **Single-pass agents.** `architect-low`, `code-reviewer-low`, `security-reviewer-low` do one read, lookup, or review pass. `writer` edits documentation only. Do not give them multi-step or code-mutating work.
 
 ## Git (canonical: git-master skill)
 
-`~/.claude/skills/git-master/` is canonical for commits, branches, PRs, merge, push: Simple Fix Fast-Path, Branch Discipline, Conventional Commits, no AI fingerprints ever, deploy-trigger checks, CodeCommit workflow (codecommit.md). ALWAYS follow it for git work.
+`~/.claude/skills/git-master/` is canonical for commits, branches, PRs, merge, push: Simple Fix Fast-Path, Branch Discipline, Conventional Commits, no AI fingerprints ever, deploy-trigger checks, CodeCommit workflow (codecommit.md). Follow it for git work.
 
 ## Package Manager
 
@@ -40,6 +40,9 @@ Check `packageManager` in `package.json`, then use the matching command:
 - **Terse mode never compresses tool-call structure:** terse applies to prose only. Tool calls, code, commit messages, and PR bodies stay complete.
 - **CSS units always rem:** convert px to rem in code even when the user says px (divide by 16, e.g. 800px is 50rem). Keep vw/vh/% as is.
 - **Always use a worktree:** new branch work uses `git worktree add -b <branch> ../<repo>-<topic> main`. Never branch and edit in the main checkout.
+- **Think before coding:** state assumptions, and when the request has several readings, present them instead of picking one silently. Say so when a simpler approach exists. This applies to specs written for subagents too.
+- **Minimum code:** no features beyond the request, no single-use abstractions, no unrequested configurability, no handling for impossible errors.
+- **Surgical diffs:** touch only the lines the request requires, match existing style, mention unrelated dead code instead of deleting it, and remove only what your own change orphaned.
 - **Verify before claiming done:** before saying done, fixed, or passing, run a fresh command that proves it, read the exit code and full output, and report with evidence. No "should work" or "probably passes". Unverified claims are remaining work. Subagent reports meet the same bar, and numbers come from actual output.
 
 ## Shared Rules
