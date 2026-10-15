@@ -36,7 +36,7 @@ from pathlib import Path
 
 from docx import Document
 
-FORBIDDEN = "—–·→←⇒"
+FORBIDDEN = "\u2014\u2013\u00b7\u2192\u2190\u21d2"
 LINE_REF = re.compile(r"\[0?\d{3}\]")
 TONE = re.compile(r"(^|\n)(답변\.|권고\.)|맞습니다|적절하|맞아 보입니다")
 

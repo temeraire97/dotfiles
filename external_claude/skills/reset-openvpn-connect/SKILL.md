@@ -14,23 +14,23 @@ Trigger this skill when the user reports any of:
 - OpenVPN Connect stuck on "Trying to connect…" with no progress
 - VPN that "was working until today" suddenly fails to connect
 - Outbound traffic to specific IPs fails with `Network is unreachable` or silent drops while general internet works
-- Multiple `utun` interfaces accumulated (more than the usual 3–4 macOS system ones)
+- Multiple `utun` interfaces accumulated (more than the usual 3-4 macOS system ones)
 - The OpenVPN Connect window has been closed but the app is still affecting the network
 - User says they "quit" OpenVPN Connect but the symptoms persist
 
 ## Why This Happens
 
-OpenVPN Connect on macOS is a v3.x Electron app, but the persistence isn't really about the GUI — it's about **two root-privileged LaunchDaemons** that run independently of the user-facing app:
+OpenVPN Connect on macOS is a v3.x Electron app, but the persistence isn't really about the GUI, it's about **two root-privileged LaunchDaemons** that run independently of the user-facing app:
 
-- `/Library/LaunchDaemons/org.openvpn.connect.agent.plist` → `ovpnagent`
-- `/Library/LaunchDaemons/org.openvpn.connect.helper.plist` → `ovpnhelper`
+- `/Library/LaunchDaemons/org.openvpn.connect.agent.plist`: `ovpnagent`
+- `/Library/LaunchDaemons/org.openvpn.connect.helper.plist`: `ovpnhelper`
 
 Both auto-restart via `launchd` after a plain `killall`. They survive `Cmd+Q` on the GUI. They are the components that own the VPN tunnel and the routing table changes.
 
 Two common wedge modes:
 
 1. **Disconnect leaves bad routes.** OpenVPN has a long-standing class of bugs where the disconnect path removes routes from the wrong interface or fails to clean up host routes. The default route ends up pointing at a stale or non-functional `utun`.
-2. **Accumulated `utun` interfaces cause socket-binding ambiguity.** macOS's `NetworkExtension` framework leaks `utun` interfaces (they cannot be destroyed from userspace — `ifconfig utunN destroy` returns `SIOCIFDESTROY: Invalid argument`). Reports of 90+ leaked `utun`s exist. When the kernel can't unambiguously choose a source address/interface for a new outbound socket, `sendto()` returns `Network is unreachable` — even for traffic unrelated to the VPN.
+2. **Accumulated `utun` interfaces cause socket-binding ambiguity.** macOS's `NetworkExtension` framework leaks `utun` interfaces (they cannot be destroyed from userspace, `ifconfig utunN destroy` returns `SIOCIFDESTROY: Invalid argument`). Reports of 90+ leaked `utun`s exist. When the kernel can't unambiguously choose a source address/interface for a new outbound socket, `sendto()` returns `Network is unreachable`, even for traffic unrelated to the VPN.
 
 ## Diagnostic Signals
 
@@ -40,7 +40,7 @@ Before applying the reset, confirm with these quick checks. If multiple match, t
 # 1. Are OpenVPN daemons running?
 ps -ax | grep -iE "openvpn|ovpnagent|ovpnhelper" | grep -v grep
 
-# 2. How many utun interfaces? (macOS baseline is usually 3–4; 6+ is suspicious, 10+ is almost certainly leaked)
+# 2. How many utun interfaces? (macOS baseline is usually 3-4; 6+ is suspicious, 10+ is almost certainly leaked)
 ifconfig -l | tr ' ' '\n' | grep -c '^utun'
 
 # 3. Does outbound UDP to a known-reachable IP fail unexpectedly?
@@ -52,11 +52,11 @@ sudo launchctl list | grep -i openvpn
 
 Red flags: `ovpnagent`/`ovpnhelper` running, 6+ `utun` interfaces, `sendto()` raises `Network is unreachable`, daemons listed in `launchctl list`.
 
-> Do **not** treat a `192.0.0.1` default gateway as a red flag on its own — that's the normal gateway for iPhone USB tethering / Personal Hotspot, not a hijacked route.
+> Do **not** treat a `192.0.0.1` default gateway as a red flag on its own, that's the normal gateway for iPhone USB tethering / Personal Hotspot, not a hijacked route.
 
 ## The Fix
 
-### Step 1 — Unload the LaunchDaemons (not just `killall`)
+### Step 1: Unload the LaunchDaemons (not just `killall`)
 
 Plain `killall` is insufficient because `launchd` will respawn `ovpnagent`/`ovpnhelper` within seconds. Unload them first, then kill any stragglers:
 
@@ -83,7 +83,7 @@ sudo launchctl load /Library/LaunchDaemons/org.openvpn.connect.agent.plist
 sudo launchctl load /Library/LaunchDaemons/org.openvpn.connect.helper.plist
 ```
 
-### Step 2 — (Recommended) Reboot the Mac
+### Step 2: (Recommended) Reboot the Mac
 
 Reboot is the **only reliable way** to clear leaked `utun` interfaces. They are kernel-managed via `NetworkExtension` and cannot be destroyed from userspace. Stale host routes installed by OpenVPN can also survive a process kill.
 
@@ -101,13 +101,13 @@ networksetup -setnetworkserviceenabled Wi-Fi on
 
 After the cycle, re-check `ifconfig -l | grep -c '^utun'`. If it still shows the leaked count, a reboot is unavoidable.
 
-### Step 3 — Reopen OpenVPN Connect and reconnect
+### Step 3: Reopen OpenVPN Connect and reconnect
 
 Launch the app fresh and click **Connect**. The LaunchDaemons will be reloaded automatically (either by the app at launch or after the reboot). It should now negotiate normally.
 
 ## Important Notes
 
 - **`Disconnect` in the GUI is not enough** when the client is wedged. The daemons must be unloaded.
-- **`Cmd+Q` is not enough either** — it quits the Electron GUI but leaves `launchd` running both daemons.
-- **Don't troubleshoot the VPN server first** when these client-side signals are present. A wedged client looks identical to a server outage from the user's perspective — same "can't connect" UX — but is a 30-second fix on the client side. Verify client state before chasing server-side causes.
+- **`Cmd+Q` is not enough either**: it quits the Electron GUI but leaves `launchd` running both daemons.
+- **Don't troubleshoot the VPN server first** when these client-side signals are present. A wedged client looks identical to a server outage from the user's perspective, same "can't connect" UX, but is a 30-second fix on the client side. Verify client state before chasing server-side causes.
 - **Same-NAT (hairpin NAT loopback) trap:** if the user is on the same network as the VPN server and the router does not support NAT loopback, connection attempts will fail. Repeated failed retries in this state can combine with the `utun`/route bugs above to leave the client wedged. Suggest connecting to the VPN server's LAN IP directly (via `Server Override` in the profile settings) or only using the VPN from external networks.

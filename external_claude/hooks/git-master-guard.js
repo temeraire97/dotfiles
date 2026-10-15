@@ -2,7 +2,7 @@
 // ~/.claude/hooks/git-master-guard.js
 // PreToolUse hook (matcher: Bash): DENY a commit/PR command that carries an
 // AI/Claude fingerprint. This is the deterministic backstop for the git-master
-// "fingerprint 절대 금지" rule — a skill can be skipped, a session reminder may
+// "fingerprint 절대 금지" rule, a skill can be skipped, a session reminder may
 // push the opposite, but this blocks the actual command.
 //
 // SCOPE: only commands that (a) create a commit or a PR AND (b) contain a

@@ -4,7 +4,7 @@
 # Hook commands are executed with a minimal PATH that often misses homebrew /
 # fnm / nvm shims, so a bare `node` is unreliable and an absolute path is not
 # portable across machines. This resolves node at call time and fails open
-# (exit 0, no output) when no node exists — a missing runtime must never block
+# (exit 0, no output) when no node exists: a missing runtime must never block
 # a tool call.
 #
 # Usage: run-node.sh <script.js> [args...]

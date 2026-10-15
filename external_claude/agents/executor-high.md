@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Edit, Write, Bash
 model: sonnet
 skills:
   - backend-invariants
+  - coding-principles
 ---
 
 # Executor High - Complex Multi-File Task Executor

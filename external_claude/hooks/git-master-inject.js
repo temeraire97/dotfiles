@@ -2,8 +2,7 @@
 // ~/.claude/hooks/git-master-inject.js
 // UserPromptSubmit hook: when the prompt looks like a git task, inject the
 // git-master core rules as context so they are present deterministically
-// (skill auto-invocation is probabilistic; this backstops rule AWARENESS —
-// it does not enforce. The hard fingerprint block lives in git-master-guard.js).
+// (skill auto-invocation is probabilistic; this backstops rule AWARENESS, // it does not enforce. The hard fingerprint block lives in git-master-guard.js).
 //
 // Injected text is written as FACTUAL STATEMENTS, not imperative/system commands:
 // out-of-band command framing can trip Claude's prompt-injection defenses

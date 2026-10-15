@@ -17,8 +17,8 @@ Frontend code design principles.
 ## Predictability
 
 - **Standardize return types**: use consistent return types across similar functions
-  - React Query hooks → return whole query object
-  - validation functions → `{ ok: true } | { ok: false; reason: string }`
+  - React Query hooks: return whole query object
+  - validation functions: `{ ok: true } | { ok: false; reason: string }`
 - **Reveal hidden logic (SRP)**: function does only what its signature implies - no hidden side effects
 - **Use unique, descriptive names**: avoid ambiguity in custom wrappers (e.g., `httpService.getWithAuth` not just `http.get`)
 

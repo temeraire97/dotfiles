@@ -1,14 +1,14 @@
 ---
 name: analyze-ship
 description: |
-  End-to-end "analyze then build" pipeline. Orchestrates, in order: grill (lock requirements) → team-analysis (parallel team review) → to-prd (write PRD) → to-issues (break into issues) → task-loop (implement, verify, merge).
+  End-to-end "analyze then build" pipeline. Orchestrates, in order: grill (lock requirements), then team-analysis (parallel team review), then to-prd (write PRD), then to-issues (break into issues), then task-loop (implement, verify, merge).
   Use to drive a large feature, refactor, or migration "from start to finish".
-  Do NOT use for trivial work — overkill.
+  Do NOT use for trivial work: overkill.
 ---
 
-# Analyze-Ship — Analyze→Build Pipeline
+# Analyze-Ship: Analyze then Build Pipeline
 
-> **Thin orchestrator.** Each stage invokes an existing skill via the `Skill` tool **on demand (lazy load)**. No content duplicated — single source of truth (DRY).
+> **Thin orchestrator.** Each stage invokes an existing skill via the `Skill` tool **on demand (lazy load)**. No content duplicated, single source of truth (DRY).
 > **Philosophy**: KISS > YAGNI > DRY.
 
 ---
@@ -16,8 +16,8 @@ description: |
 ## Pipeline
 
 ```
-grill-me  →  team-analysis  →  to-prd  →  to-issues  →  task-loop
-(lock reqs)   (parallel team)   (PRD)      (split issues) (build · verify · merge)
+grill-me, then team-analysis, then to-prd, then to-issues, then task-loop
+(lock reqs)   (parallel team)   (PRD)      (split issues) (build, verify, merge)
 ```
 
 Each stage = one `Skill` call. **Each stage's output feeds the next.** Approval gate between stages.
@@ -26,12 +26,12 @@ Each stage = one `Skill` call. **Each stage's output feeds the next.** Approval 
 
 ## Stages
 
-### 1. Grill — Lock Requirements
+### 1. Grill: Lock Requirements
 - `Skill(skill: "grill-me")`
 - Interrogate requirements, scope, edge cases until ambiguity is gone
 - ✅ Gate: proceed when shared understanding is reached
 
-### 2. Team Analysis — Parallel Review
+### 2. Team Analysis: Parallel Review
 - `Skill(skill: "team-analysis")`
 - 4 axes: 2026 best practice / structure / over-engineering / [KISS>YAGNI>DRY]
 - Produces: recommendation + implementation order
@@ -39,25 +39,25 @@ Each stage = one `Skill` call. **Each stage's output feeds the next.** Approval 
 
 ### 3. To PRD
 - `Skill(skill: "to-prd")`
-- Stage 1+2 context → write & publish PRD
+- Stage 1+2 context: write & publish PRD
 - ✅ Gate: confirm PRD
 
 ### 4. To Issues
 - `Skill(skill: "to-issues")`
-- PRD → tracer-bullet vertical-slice issues
+- PRD: tracer-bullet vertical-slice issues
 - ✅ Gate: confirm issue list
 
-### 5. Task Loop — Implement
+### 5. Task Loop: Implement
 - `Skill(skill: "task-loop")`
-- branch → task decomposition → impl team (parallel) → commit → verification team → recursive fixes → PR merge
+- branch, then task decomposition, then impl team (parallel), then commit, then verification team, then recursive fixes, then PR merge
 
 ---
 
 ## Principles
 
-1. **Sequential lazy load** — never preload all 5 skills. Each SKILL.md enters context only at its stage → saves context
-2. **Respect gates** — advance only after user approval per stage. No unsupervised runaway
-3. **Skipping allowed** — if the user says "skip grill" / "PRD already exists", drop that stage and move on
-4. **Chain outputs** — explicitly pass the prior stage's result as input to the next skill
-5. **Abortable** — if the user stops at any gate, end there
-6. **Orchestrator-only** — analyze-ship and its sub-skills NEVER edit files from the main loop; all implementation is delegated to `tdd-executor` (behavior changes) or `executor` (config, docs, moves) inside `task-loop`, per CLAUDE.md Model Routing. The main loop drives the pipeline and reviews.
+1. **Sequential lazy load**: never preload all 5 skills. Each SKILL.md enters context only at its stage, which saves context
+2. **Respect gates**: advance only after user approval per stage. No unsupervised runaway
+3. **Skipping allowed**: if the user says "skip grill" / "PRD already exists", drop that stage and move on
+4. **Chain outputs**: explicitly pass the prior stage's result as input to the next skill
+5. **Abortable**: if the user stops at any gate, end there
+6. **Orchestrator-only**: analyze-ship and its sub-skills do not edit files from the main loop; all implementation is delegated to `tdd-executor` (behavior changes) or `executor` (config, docs, moves) inside `task-loop`, per CLAUDE.md Model Routing. The main loop drives the pipeline and reviews.

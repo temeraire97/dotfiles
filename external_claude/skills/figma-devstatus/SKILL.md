@@ -11,7 +11,7 @@ Neither Figma MCP server (`plugin:figma`, `figma-desktop`) can read devStatus.
 
 - `use_figma` accessing `node.devStatus` gives `Error: in get_devStatus: "devStatus" is not a supported API` (blocked by plugin API allowlist)
 - `get_metadata` XML output has no devStatus attribute either
-- Type definitions say it exists (`DevStatusMixin.devStatus: { type: 'READY_FOR_DEV' | 'COMPLETED', description }`) — so code type-checks fine but throws at runtime
+- Type definitions say it exists (`DevStatusMixin.devStatus: { type: 'READY_FOR_DEV' | 'COMPLETED', description }`), so code type-checks fine but throws at runtime
 
 **Trap**: scanning with `try { n.devStatus } catch { continue }` swallows every node into the catch branch and reports a false "0 found". Always tally the exception count separately.
 
@@ -33,7 +33,7 @@ jq -r '.document.children[] | .name as $p | recurse(.children[]?) | select(.devS
        | "\($p)\t\(.devStatus.type)\t\(.id)\t\(.type)\t\(.name)"' /tmp/figma_full.json
 ```
 
-- Watch the depth param: `?depth=4` only covers down to top-level frames. For full coverage fetch without depth (big files exceed 100MB — always save to file and query with jq, never read whole thing).
+- Watch the depth param: `?depth=4` only covers down to top-level frames. For full coverage fetch without depth (big files exceed 100MB, always save to file and query with jq, never read whole thing).
 - Node deep link: `https://www.figma.com/design/<FILE_KEY>?node-id=<id with colon replaced by hyphen>`
 
 ## Follow-up work pattern

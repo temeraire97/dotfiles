@@ -8,7 +8,7 @@ input=$(cat)
 # Resolve bun without hardcoding a machine-specific home.
 BUN="$(command -v bun 2>/dev/null || true)"
 [ -n "$BUN" ] || BUN="$HOME/.bun/bin/bun"
-[ -x "$BUN" ] || exit 0   # no bun on this machine — emit no status line
+[ -x "$BUN" ] || exit 0   # no bun on this machine, emit no status line
 
 hud_entry=$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)
 ctx_bundle=$(ls -td ~/.claude/plugins/cache/context-mode/context-mode/*/cli.bundle.mjs 2>/dev/null | head -1)

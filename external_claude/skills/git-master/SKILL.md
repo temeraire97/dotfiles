@@ -76,7 +76,7 @@ Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치
 - **문서 전용**: 변경 파일이 전부 `*.md`, `docs/**`, 코드 주석뿐. 줄 수 제한 없음. 각 repo `ci.yml`의 `paths-ignore: ['**.md', 'docs/**']`로 CI가 돌지 않는다.
 - **경미한 코드 수정**: 1~2줄, 단일 파일, 오타 또는 명백한 한 줄 버그.
 
-동작: main에서 수정 → 커밋 → push. PR 생략.
+동작: main에서 수정, then 커밋, then push. PR 생략.
 
 제외 (크기와 무관하게 항상 브랜치+PR):
 - `.github/workflows/**`, `lefthook*.yml`, `commitlint.config.*`, `dependabot.yml` (CI 자체를 바꾸는 파일)
@@ -86,8 +86,8 @@ Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치
 
 경로 2 (사용자 판단, trivial하지 않은 fix) - `fix` 타입이지만 로직/동작 변경, 범위 불명확 등이면 먼저 질문:
 > "fix 작업입니다. main에서 바로 커밋할까요, 아니면 브랜치+PR로 진행할까요?"
-- main 직행 선택 → 브랜치 없이 main에서 수정 → 커밋 → push (PR 생략)
-- 브랜치 선택 또는 무응답 → Branch Discipline 대로 브랜치+PR
+- main 직행 선택, then 브랜치 없이 main에서 수정, then 커밋, then push (PR 생략)
+- 브랜치 선택 또는 무응답: Branch Discipline 대로 브랜치+PR
 
 반드시 브랜치 사용 (예외 아님):
 - 다중 파일 코드 변경 (3파일 이상)
@@ -100,9 +100,9 @@ Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치
 배포 트리거 확인 (main 직접 push 전): 자동 판단하지 말고 repo를 확인한 뒤 불확실할 때만 고지한다.
 1. `.github/workflows/`에서 `on: push` + main/default 브랜치 트리거를 grep
 2. 판정:
-   - 트리거 발견 → "main push가 배포를 트리거합니다(`<파일>`). 진행할까요?" 고지 후 대기
-   - repo에 트리거 없음 → 조용히 진행. 단 `vercel.json`/`netlify.toml` 등이 있으면 "repo엔 트리거가 없지만 대시보드 자동배포는 확인 불가합니다. 배포 연동이 있으면 알려주세요" 한 줄
-   - CodeCommit repo → AWS trigger/Pipeline은 확인 불가하니 항상 고지
+   - 트리거 발견: "main push가 배포를 트리거합니다(`<파일>`). 진행할까요?" 고지 후 대기
+   - repo에 트리거 없음: 조용히 진행. 단 `vercel.json`/`netlify.toml` 등이 있으면 "repo엔 트리거가 없지만 대시보드 자동배포는 확인 불가합니다. 배포 연동이 있으면 알려주세요" 한 줄
+   - CodeCommit repo: AWS trigger/Pipeline은 확인 불가하니 항상 고지
 
 공통 규칙:
 - 한국어 Conventional Commits: `type(scope): message`, scope 필수
@@ -116,7 +116,7 @@ GitHub Flow를 쓴다:
 1. main은 항상 배포 가능 상태
 2. main에서 설명적 이름의 브랜치 생성 (prefix 없이)
 3. 정기적으로 push
-4. PR → Review → Merge to main → Deploy
+4. PR, then Review, then Merge to main, then Deploy
 
 GitHub은 로컬 merge가 필요 없다. Merge 방식은 3-way merge(`--merge`)가 기본이다. **merge는 반드시 `scripts/pr-merge.sh`로 한다.** `gh pr merge` 직접 호출은 guard hook이 막는다.
 

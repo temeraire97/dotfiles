@@ -201,12 +201,6 @@
         "repo": "mksglu/context-mode"
       }
     },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    },
     "claude-hud": {
       "source": {
         "source": "github",

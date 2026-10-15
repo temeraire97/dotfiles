@@ -102,5 +102,5 @@ author 신원은 하드코딩하지 않고 git config에서 자동 참조한다.
 - PR은 기록용으로 남기고 로컬에서 merge할 때
 
 주의:
-- PR 생성 후 로컬 merge → push하면 PR은 자동 CLOSED가 된다
+- PR 생성 후 로컬 merge: push하면 PR은 자동 CLOSED가 된다
 - Force push가 필요할 수 있다 (`--force-with-lease` 사용)

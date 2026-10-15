@@ -26,7 +26,7 @@ This produces **crap tests**:
 - Tests become insensitive to real changes - they pass when behavior breaks, fail when behavior is fine
 - You outrun your headlights, committing to test structure before understanding the implementation
 
-**Correct approach**: Vertical slices via tracer bullets. One test → one implementation → repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.
+**Correct approach**: Vertical slices via tracer bullets. One test, then one implementation, then repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.
 
 ```
 WRONG (horizontal):
@@ -34,9 +34,9 @@ WRONG (horizontal):
   GREEN: impl1, impl2, impl3, impl4, impl5
 
 RIGHT (vertical):
-  RED→GREEN: test1→impl1
-  RED→GREEN: test2→impl2
-  RED→GREEN: test3→impl3
+  RED then GREEN: test1 then impl1
+  RED then GREEN: test2 then impl2
+  RED then GREEN: test3 then impl3
   ...
 ```
 
@@ -65,8 +65,8 @@ Ask: "What should the public interface look like? Which behaviors are most impor
 Write ONE test that confirms ONE thing about the system:
 
 ```
-RED:   Write test for first behavior → test fails
-GREEN: Write minimal code to pass → test passes
+RED:   Write test for first behavior, then test fails
+GREEN: Write minimal code to pass, then test passes
 ```
 
 This is your tracer bullet - proves the path works end-to-end.
@@ -76,8 +76,8 @@ This is your tracer bullet - proves the path works end-to-end.
 For each remaining behavior:
 
 ```
-RED:   Write next test → fails
-GREEN: Minimal code to pass → passes
+RED:   Write next test, then fails
+GREEN: Minimal code to pass, then passes
 ```
 
 Rules:

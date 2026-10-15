@@ -10,7 +10,7 @@ description: |
 ## Overview
 
 Claude Code config is backed up by **chezmoi**. The backup repo *is* the chezmoi
-source directory — resolve it with `chezmoi source-path`, never hardcode it.
+source directory, resolve it with `chezmoi source-path`, never hardcode it.
 
 **What is backed up** (payload lives in `<source>/external_claude/`):
 
@@ -24,8 +24,7 @@ source directory — resolve it with `chezmoi source-path`, never hardcode it.
 - `~/.claude/rules/` - path-scoped rule files
 
 Each of those is a **symlink** from `~/.claude/` into `<source>/external_claude/`,
-so an app writing through the symlink lands directly in the source working tree —
-drift is structurally zero.
+so an app writing through the symlink lands directly in the source working tree, drift is structurally zero.
 
 **Not backed up:** `~/.claude/settings.local.json` is deliberately excluded by
 `.chezmoiignore` (machine-local overrides). Do not try to "fix" its absence.
@@ -72,8 +71,7 @@ launchctl list | grep chezmoi-sync
 tail -20 ~/Library/Logs/chezmoi-sync.log
 ```
 
-Read the `##` line from step [2]: `[ahead N]` is the unpushed count. Report it —
-do not act on it.
+Read the `##` line from step [2]: `[ahead N]` is the unpushed count. Report it, do not act on it.
 
 **Output format:**
 ```markdown
@@ -82,8 +80,8 @@ do not act on it.
 | 항목 | 상태 |
 |------|------|
 | 소스 저장소 | `~/.local/share/chezmoi` (원격 **PUBLIC**) |
-| 마지막 커밋 | YYYY-MM-DD HH:MM — [커밋 제목] |
-| 미push 커밋 | 🟢 없음 / 🟡 N개 — push는 사람이 수동 |
+| 마지막 커밋 | YYYY-MM-DD HH:MM, [커밋 제목] |
+| 미push 커밋 | 🟢 없음 / 🟡 N개, push는 사람이 수동 |
 | 대기 변경 | 🟢 없음 / 🟡 N개 항목 |
 | 자동 백업 | ✅ 등록됨 (매일 17:00) / ❌ 미등록 |
 
@@ -100,11 +98,11 @@ do not act on it.
 
 ### `/backup now`
 
-Run the nightly sync immediately. It commits locally only — it does **not** push.
+Run the nightly sync immediately. It commits locally only, it does **not** push.
 
 **Actions:**
 ```bash
-# [1] Same script launchd runs at 17:00 — local commit only
+# [1] Same script launchd runs at 17:00: local commit only
 bash "$(chezmoi source-path)/scripts/nightly-sync.sh"
 ```
 
@@ -116,7 +114,7 @@ verbatim instead of retrying.
 ```markdown
 ## ✅ Backup Complete
 
-로컬 커밋까지 완료했습니다. (push 안 함 — 사람이 리뷰 후 수동)
+로컬 커밋까지 완료했습니다. (push 안 함, 사람이 리뷰 후 수동)
 
 | 항목 | 결과 |
 |------|------|
@@ -126,7 +124,7 @@ verbatim instead of retrying.
 | Git commit | ✅ 커밋됨 / ⏭️ 변경 없음 |
 | 미push 커밋 | N개 |
 
-**다음 단계:** `/backup review` → `/backup push`
+**다음 단계:** `/backup review`, then `/backup push`
 ```
 
 ---
@@ -174,7 +172,7 @@ git -C "$SRC" diff origin/main..HEAD --diff-filter=A --name-only   # new files
 **Verdict rules:**
 - **BLOCK** if gitleaks is missing, exits non-zero, or reports a leak; or if step
   [4] shows a credential-shaped hit. Report the exact line (redacted). Do not
-  proceed to push. Fixing history is the user's job — offer the amend/rebase
+  proceed to push. Fixing history is the user's job, offer the amend/rebase
   plan, do not run it unasked.
 - **WARN** for `/Users/<name>` paths, new symlinks that point outside the repo
   (they dangle on a fresh machine and their content is not backed up), and
@@ -183,7 +181,7 @@ git -C "$SRC" diff origin/main..HEAD --diff-filter=A --name-only   # new files
 
 **Output format:**
 ```markdown
-## 🔍 Backup Review — origin/main..HEAD
+## 🔍 Backup Review: origin/main..HEAD
 
 | 항목 | 결과 |
 |------|------|
@@ -197,7 +195,7 @@ git -C "$SRC" diff origin/main..HEAD --diff-filter=A --name-only   # new files
 - [파일 그룹별 한 줄: 무엇이 왜 바뀌었는지]
 
 ### 주의 (WARN 항목)
-- [파일:행 — 내용 — 차단 사유 아님]
+- [파일:행, 내용, 차단 사유 아님]
 
 판정이 PASS/WARN이면 `/backup push`로 진행 가능. BLOCK이면 push 금지.
 ```
@@ -210,7 +208,7 @@ Push local commits to the **PUBLIC** remote. Irreversible in practice: once
 pushed, content is world-readable and may be cached or forked even if
 force-removed later.
 
-**Preconditions — all three, no exceptions:**
+**Preconditions, all three, no exceptions:**
 1. `/backup review` ran **in this conversation**, on the same HEAD, and its
    verdict was PASS or WARN. If it has not run, run it now and show the result
    before the gate. If HEAD moved since the review (a `/backup now` or nightly
@@ -219,13 +217,13 @@ force-removed later.
 3. The user answers the gate below with an explicit yes. Silence, "ok?", or a
    request to "just push" made *before* the review was shown do not count.
 
-**Gate — ask, then wait:**
+**Gate, ask, then wait:**
 ```markdown
 ⚠️ 공개 저장소(`temeraire97/dotfiles`)로 push합니다. 되돌릴 수 없습니다.
 
 | 항목 | 값 |
 |------|-----|
-| 대상 | origin/main ← local main |
+| 대상 | local main to origin/main |
 | 커밋 | N개 (`abc1234` ~ `def5678`) |
 | 리뷰 판정 | ✅ PASS / ⚠️ WARN (N건: [요약]) |
 
@@ -250,7 +248,7 @@ git -C "$SRC" status -sb                     # expect: ## main...origin/main (no
 ```
 
 Never use `--force`, `--force-with-lease`, or `-u` to a different remote. If the
-push is rejected (non-fast-forward), stop and report — someone else pushed to
+push is rejected (non-fast-forward), stop and report, someone else pushed to
 the public repo, and merging that is a human decision.
 
 **Output format:**
@@ -259,8 +257,8 @@ the public repo, and merging that is a human decision.
 
 | 항목 | 결과 |
 |------|------|
-| push | ✅ origin/main ← N개 커밋 (`abc1234`..`def5678`) |
-| 상태 | `## main...origin/main` — 동기화됨 |
+| push | ✅ origin/main에 N개 커밋 (`abc1234`..`def5678`) |
+| 상태 | `## main...origin/main`: 동기화됨 |
 ```
 
 ---
@@ -275,24 +273,24 @@ Overwrite a live config file with the source's target state. **Destructive.**
 # [1] REQUIRED: one explicit target path
 chezmoi apply ~/.claude/settings.json
 
-# [2] Verify — the target should now be a symlink into external_claude/
+# [2] Verify: the target should now be a symlink into external_claude/
 ls -l ~/.claude/settings.json
 ```
 
 Why the path is not optional: a bare `chezmoi apply` applies **every** pending
-target-state change at once, across the whole home directory — zsh files, nvim,
+target-state change at once, across the whole home directory, zsh files, nvim,
 `~/.local/bin`, anything else that happens to be out of sync. Unrelated live
 config gets overwritten in the same breath as the file the user actually asked
 about, with no undo. Scope the apply to the single path, every time.
 
-**Ask before running — do not skip this gate:**
+**Ask before running, do not skip this gate:**
 ```markdown
 ⚠️ 복원은 파괴적 작업입니다. 현재 로컬 설정을 소스의 타깃 상태로 덮어씁니다.
 
 | 항목 | 값 |
 |------|-----|
 | 대상 | `~/.claude/settings.json` |
-| 동작 | 로컬 파일 → 소스 타깃 상태로 덮어쓰기 |
+| 동작 | 로컬 파일: 소스 타깃 상태로 덮어쓰기 |
 | 되돌리기 | 불가 (로컬 변경분 소실) |
 
 진행하시겠습니까? (yes/no)
@@ -303,7 +301,7 @@ that is a broken-symlink signal, not a normal restore. Decline, and investigate
 the symlink first (see Symlink Integrity below).
 
 **New-machine restore is a different job.** There is no install script here.
-Follow the "새 머신 복원" section of the repo `README.md` — `brew install chezmoi`
+Follow the "새 머신 복원" section of the repo `README.md`: `brew install chezmoi`
 then `chezmoi init --apply <remote>`, which runs the `.chezmoiscripts/` bootstrap.
 
 ---
@@ -343,7 +341,7 @@ into `<source>/external_claude/`.
 
 - **`settings.json` is self-healing.** The Claude CLI sometimes replaces the
   symlink with a regular file. The script captures the file's content into the
-  source first, then re-applies the symlink — so no settings are lost in the
+  source first, then re-applies the symlink, so no settings are lost in the
   repair.
 - **Every other broken symlink is an alarm, not a repair job.** The script only
   captures a fallback copy and notifies. A human must investigate the cause
@@ -356,7 +354,7 @@ into `<source>/external_claude/`.
 
 | Purpose | Path |
 |------|------|
-| Backup repo (source) | `$(chezmoi source-path)` → `~/.local/share/chezmoi` |
+| Backup repo (source) | `$(chezmoi source-path)`: `~/.local/share/chezmoi` |
 | Claude payload | `<source>/external_claude/` |
 | Sync script | `<source>/scripts/nightly-sync.sh` |
 | Backup log | `~/Library/Logs/chezmoi-sync.log` |
