@@ -1,3 +1,8 @@
+---
+name: my-frontend
+description: Frontend code design principles (readability, predictability, cohesion, coupling) for React and TypeScript work. Use when writing or reviewing frontend code; CLAUDE.md points frontend work here.
+---
+
 # My Frontend Guidelines
 
 Frontend code design principles.

@@ -70,7 +70,7 @@ feature/xxx, fix/xxx, chore/xxx
 
 ### 예외: Simple Fix Fast-Path (간단 수정은 main 직접)
 
-Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치를 쓴다. PR 하나가 CI를 PR과 main에서 두 번 돌리므로(9월 실측 main push CI의 75%가 순수 중복) 검증 가치가 없는 변경은 PR을 열지 않는다. 근거 `~/uwellnow/docs/PR-주기와-CI-중복-리서치-2026-09-30.md`.
+Branch Discipline의 예외다. 판단이 애매하면 보수적으로 브랜치를 쓴다. PR 하나가 CI를 PR과 main에서 두 번 돌리므로 검증 가치가 없는 변경은 PR을 열지 않는다.
 
 경로 1 (자동 eligible, 질문 없이 main 직행) - 다음 중 하나:
 - **문서 전용**: 변경 파일이 전부 `*.md`, `docs/**`, 코드 주석뿐. 줄 수 제한 없음. 각 repo `ci.yml`의 `paths-ignore: ['**.md', 'docs/**']`로 CI가 돌지 않는다.

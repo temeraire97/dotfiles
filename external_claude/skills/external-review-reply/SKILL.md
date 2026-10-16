@@ -75,6 +75,6 @@ spec.json 형식과 검증 항목은 스크립트 상단 docstring 참고. 입�
 
 전후 예시는 `examples.md`.
 
-## External document body (added 2026-10-14)
+## External document body
 
 Also applies to the body of specs and requirement documents sent to a vendor, not only comments. Factual statements may keep the plain spec style ("~다"), but every sentence that asks or tells the vendor something follows the tone rules above: no "알려 주기 바란다", "알려 달라", "답해도 된다", "서류로 받는다", "제작사와 맞춘다". Use "알려 주시면 감사하겠습니다", "확인 부탁드립니다", "답해 주셔도 됩니다", "서류로 부탁드립니다". Title the question section "확인 부탁드리는 것", not "묻는 것". Pre-send check: `grep -nE "바란다|달라|답해도|받는다|맞춘다"` must return nothing.

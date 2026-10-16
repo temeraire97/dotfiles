@@ -33,7 +33,7 @@ Each stage = one `Skill` call. **Each stage's output feeds the next.** Approval 
 
 ### 2. Team Analysis: Parallel Review
 - `Skill(skill: "team-analysis")`
-- 4 axes: 2026 best practice / structure / over-engineering / [KISS>YAGNI>DRY]
+- 4 axes: current-year best practice / structure / over-engineering / [KISS>YAGNI>DRY]
 - Produces: recommendation + implementation order
 - ✅ Gate: user approves the approach
 

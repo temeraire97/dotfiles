@@ -7,7 +7,7 @@ description: Break a plan, spec, or PRD into independently-grabbable issues on t
 
 Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
 
-The issue tracker and triage label vocabulary should have been provided to you, run `/setup-matt-pocock-skills` if not.
+The issue tracker and triage label vocabulary should have been provided to you (an `## Agent skills` block in CLAUDE.md or AGENTS.md). If not, stop and ask the user to run `/setup-matt-pocock-skills`; the model cannot invoke it.
 
 ## Process
 

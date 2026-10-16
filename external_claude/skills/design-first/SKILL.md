@@ -141,15 +141,7 @@ description: |
 
 ## Execution Flow
 
-```
-Scout (정찰)
-    ↓
-Architect (설계)
-    ↓
-Estimator (산정)
-    ↓
-User Confirmation (승인 대기)
-```
+Scout (정찰), then Architect (설계), then Estimator (산정), then User Confirmation (승인 대기)
 
 ---
 

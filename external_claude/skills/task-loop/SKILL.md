@@ -72,7 +72,7 @@ Apply Task Loop if **any** of the following hold:
 
 **Principles**:
 - All implementation is delegated. Tasks that change behavior go to `tdd-executor` whether or not they carry a `[TDD]` tag; `executor` takes only work with nothing to test (config, docs, moves). The main loop does not edit code itself beyond one-line changes; it follows the Model Routing rule in CLAUDE.md. No hook enforces this.
-- Agent choice for tasks with nothing to test: single-file config or docs: `executor`; multi-file moves or dependency-ordered config changes: `executor-high`; 1-2 file mechanical tweaks: `cavecrew-builder`. Anything that changes behavior is `tdd-executor` regardless of size.
+- Agent choice for tasks with nothing to test: single-file config, docs, or 1-2 file mechanical tweaks: `executor`; multi-file moves or dependency-ordered config changes: `executor-high`. Anything that changes behavior is `tdd-executor` regardless of size.
 - The verification team **runs in parallel**: multiple Agent calls in a single message.
 
 ---
@@ -155,11 +155,10 @@ T1 (sequential, scaffolds the module)
    - Non-[TDD] task (nothing to test): spawn `executor` (it owns the Edit/Write).
        Brief it to Read/Grep dependent files first and follow existing patterns
        (no novel inventions). The main loop specs the task, then reviews + commits.
-   - [TDD] task: drive implementation with the `tdd` skill, §2-4 ONLY
-       (Tracer Bullet, then Incremental Loop, then Refactor). One test, then one impl, repeat.
-       SKIP tdd §1 Planning, the plan is INHERITED, not re-planned: the issue's
-       Acceptance criteria are the seed behavior list; tdd §2-4 grows finer
-       behaviors inside the loop. Commit once per green (see Step 3).
+   - [TDD] task: spawn `tdd-executor` with the inherited Acceptance criteria as
+       the seed behavior list. It loads the `tdd` skill itself and applies §2-4
+       (Tracer Bullet, then Incremental Loop, then Refactor), one test then one
+       impl, committing once per green (see Step 3). tdd §1 Planning is not re-run.
 3. Skill(git-master) commit OR direct git add + git commit
    - Korean conventional commit (type(scope): message)
    - scope is required
@@ -217,7 +216,7 @@ Agent(architect-medium)  : design coherence, plan alignment, architectural healt
 WebSearch({query} {current year})   industry best practices, include the current year
 ```
 
-**If the Unit of Work contains `[TDD]` tasks**, extend the `code-reviewer` brief with two checks: (1) tests verify observable behavior, not implementation details; (2) `git log` shows an incremental test↔impl cadence, not a bulk test-dump (horizontal slicing).
+**If the Unit of Work contains `[TDD]` tasks**, extend the `code-reviewer` brief with two checks: (1) tests verify observable behavior, not implementation details; (2) `git log` shows an incremental test-then-impl cadence, not a bulk test-dump (horizontal slicing).
 
 **Adjust depth by complexity**:
 - Simple change: `code-reviewer-low` + WebSearch only
@@ -305,7 +304,7 @@ git checkout main && git pull --ff-only && git branch -d {branch}
 
 Calling the GitHub merge command directly is denied by the git-master guard hook.
 
-**Warning**: only merge **after explicit user approval**. Auto-merge is forbidden. Only run it when the user issues an explicit command like `/git-master merge`.
+**Warning**: only merge **after explicit user approval**. Auto-merge is forbidden. Run it only after the user explicitly says to merge this PR.
 
 ### Step 10. Refresh knowledge graph
 
@@ -332,7 +331,7 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
 9. **WebSearch queries include the current year** to prevent stale-info regression
 10. **No auto-merge**: only after explicit user approval
 11. **3rd recursion round = escalate**: prevents infinite loops
-12. **graphify update after every merge**: once a Unit of Work merges to main, run `graphify update .` (AST-only, no API cost). Skipping this leaves the knowledge graph stale and causes future island/community-based analyses to misjudge dead code or migration leftovers.
+12. **graphify update after every merge in a graphify repo**: when the repo keeps a `graphify-out/` graph or its CLAUDE.md requires it, run `graphify update .` after each Unit of Work merges to main (AST-only, no API cost). A stale graph makes island and community analyses misjudge dead code and migration leftovers.
 13. **`[TDD]` tasks are implemented test-first via the `tdd` skill**: red-green-refactor, §2-4 only, one test at a time, one commit per green. tdd §1 Planning is INHERITED from upstream (`to-prd` Testing Decisions / `to-issues` Acceptance criteria), never re-run inside Task Loop. Parallel `[TDD]` tasks run in `tdd-executor` agents under worktree isolation. Splitting test-writing into a separate task (horizontal slicing) is forbidden. A red (failing) state is never committed.
 
 ---
@@ -388,6 +387,6 @@ If the project's CLAUDE.md requires `graphify update .` after code changes, run 
 ▢ Create PR (gh pr create)
 ▢ Wait for user approval
 ▢ On approval: ~/.claude/skills/git-master/scripts/pr-merge.sh <N>, then delete the branch
-▢ Refresh knowledge graph (git checkout main && git pull && graphify update .)
+▢ Refresh knowledge graph if the repo has graphify-out/ (git checkout main && git pull && graphify update .)
 ▢ Write retrospective / summary
 ```

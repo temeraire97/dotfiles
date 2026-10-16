@@ -1,7 +1,7 @@
 ---
 name: team-analysis
 description: |
-  Spins up a parallel agent team to analyze code/features/design across 4 axes: 2026 best practice, over-engineering detection, code structure, judged by the [KISS > YAGNI > DRY] priority.
+  Spins up a parallel agent team to analyze code/features/design across 4 axes: current-year best practice, over-engineering detection, code structure, judged by the [KISS > YAGNI > DRY] priority.
   Use for analysis, review, approach comparison, design check, "how should I structure this?", "isn't this over-engineered?".
   Do NOT use for trivial work (typo / one-line fixes): overkill.
 ---
@@ -30,7 +30,7 @@ description: |
 
 Spawn 4 `Agent`s **concurrently in a single message**. Each owns one axis.
 
-### Agent A: Researcher (2026 best practice)
+### Agent A: Researcher (current-year best practice)
 - `subagent_type`: `Explore` or `general-purpose` + `WebSearch`
 - WebSearch queries include the current year, so results reflect current recommended patterns
 - Output: industry standards, framework official guidance, deprecated-pattern warnings
@@ -61,7 +61,7 @@ Merge parallel results: resolve conflicts via **KISS > YAGNI > DRY**. Output:
 ```markdown
 ## 🔬 Team Analysis
 
-### 📡 2026 Best Practice (Researcher)
+### 📡 Current Best Practice (Researcher)
 - Recommended: [pattern]
 - Warning (deprecated): [item]
 
