@@ -32,8 +32,8 @@ chmod +x "$WORK/bin/gh" "$WORK/bin/git"
 # run <statusCheckRollup JSON 배열> <files JSON 배열> [pr-merge.sh 추가 인자...]: "merged" 또는 "aborted"를 찍는다.
 run() {
   local rollup="$1" files="$2"; shift 2
-  printf '{"headRefOid":"abc123","baseRefName":"main","state":"OPEN","statusCheckRollup":%s,"files":%s}' \
-    "$rollup" "$files" > "$WORK/fixture.json"
+  printf '{"headRefOid":"abc123","baseRefName":"main","state":"OPEN","title":"%s","statusCheckRollup":%s,"files":%s}' \
+    "$PR_TITLE" "$rollup" "$files" > "$WORK/fixture.json"
   : > "$WORK/calls"
   if PATH="$WORK/bin:$PATH" FIXTURE="$WORK/fixture.json" CALLS="$WORK/calls" PR_MERGE_RECHECK_SECONDS=0 \
       bash "$HERE/pr-merge.sh" 1 "$@" > "$WORK/stdout" 2> "$WORK/stderr" && grep -q '^MERGE ' "$WORK/calls"; then
@@ -55,6 +55,7 @@ expect() { # <설명> <기대> <실제>
   if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: 기대 $2, 실제 $3"; sed 's/^/       /' "$WORK/stderr"; fail=1; fi
 }
 
+PR_TITLE="fix(deps): 보안 알림 4건"
 CODE=$(files src/app.py)
 DOCS=$(files README.md docs/guide/setup.txt notes/a.md)
 
@@ -70,4 +71,9 @@ expect "체크 없음, 코드 변경"                      aborted        "$(run
 expect "체크 없음, 문서와 코드 섞임"               aborted        "$(run "[]" "$(files README.md .github/workflows/ci.yml)")"
 expect "체크 없음, 코드 변경, 사유를 주고 승인"    merged+comment "$(run "[]" "$CODE" --allow-failed-checks "테스트 사유")"
 expect "전부 skipped, 사유를 주고 승인"            merged+comment "$(run "$(arr "$(actions Lint COMPLETED SKIPPED)")" "$CODE" --allow-failed-checks "테스트 사유")"
+
+# merge commit 본문은 PR 제목이 type으로 시작하는 줄이 되지 않게 "PR: <제목>"으로 넘긴다(release-please 중복 항목 방지).
+run "$(arr "$(actions Lint COMPLETED SUCCESS)")" "$CODE" > /dev/null
+if grep -qF -- "--body PR: $PR_TITLE" "$WORK/calls"; then merge_body=yes; else merge_body=no; fi
+expect "merge 본문을 PR: <제목>으로 지정"         yes            "$merge_body"
 exit $fail
