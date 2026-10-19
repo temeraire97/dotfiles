@@ -147,10 +147,12 @@ git branch -d <branch-name>
 
 `scripts/pr-merge.sh`가 하는 일:
 1. `git merge-base --is-ancestor origin/main <head>` 로 브랜치가 main을 포함하는지 확인. 뒤처졌으면 중단하고 `git rebase origin/main` 안내(PR CI 재실행 후 다시).
-2. PR 체크 확인(`gh pr view --json statusCheckRollup`). 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고 그중 GitHub Actions 체크의 SUCCESS가 1개 이상이어야 한다. 전부 SKIPPED거나(draft 상태에서 돈 실행 등) 외부 체크(Vercel 등)만 통과했으면 CI가 검증한 적이 없으므로 중단. 실패나 진행 중이면 중단. 체크가 하나도 없으면 등록 지연일 수 있어 15초 뒤 한 번 더 조회하고, 그때도 없으면 변경 파일을 본다. 문서(`*.md`, `docs/**`)만 바뀐 PR이면 통과하고, 그 밖의 파일이 있으면 중단한다(infra에서 plan 대상 경로 밖의 설정 파일만 바꾼 PR이 여기에 걸린다). 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`로 실패, SUCCESS 없음, 체크 없음을 넘긴다(사유는 PR 코멘트로 남는다). 조회 실패는 이 옵션으로도 넘기지 않는다. 판정 테스트는 `scripts/test-pr-merge.sh`(가짜 gh와 git, 12개 경우)이고 스크립트를 고치면 돌린다.
-3. `gh pr merge --merge --match-head-commit <head>` 로 검사한 커밋만 merge.
+2. PR 체크 확인(`gh pr view --json statusCheckRollup`). 조회가 실패하면 중단. 체크가 있으면 전부 SUCCESS, SKIPPED, NEUTRAL 중 하나이고 그중 GitHub Actions 체크의 SUCCESS가 1개 이상이어야 한다. 전부 SKIPPED거나(draft 상태에서 돈 실행 등) 외부 체크(Vercel 등)만 통과했으면 CI가 검증한 적이 없으므로 중단. 실패나 진행 중이면 중단. 체크가 하나도 없으면 등록 지연일 수 있어 15초 뒤 한 번 더 조회하고, 그때도 없으면 변경 파일을 본다. 문서(`*.md`, `docs/**`)만 바뀐 PR이면 통과하고, 그 밖의 파일이 있으면 중단한다(infra에서 plan 대상 경로 밖의 설정 파일만 바꾼 PR이 여기에 걸린다). 사용자 명시 승인 시에만 `--allow-failed-checks '<사유>'`로 실패, SUCCESS 없음, 체크 없음을 넘긴다(사유는 PR 코멘트로 남는다). 조회 실패는 이 옵션으로도 넘기지 않는다. 판정 테스트는 `scripts/test-pr-merge.sh`(가짜 gh와 git, 13개 경우)이고 스크립트를 고치면 돌린다.
+3. `gh pr merge --merge --match-head-commit <head> --body "PR: <PR 제목>"` 로 검사한 커밋만 merge. GitHub 기본 본문(PR 제목 그대로)은 release-please가 별도 커밋으로 세어 CHANGELOG 중복과 버전 오판을 만든다. repo 설정으로는 막을 수 없다(uwellnow `engineering-conventions.md` 8절).
 
 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push에서 검증을 다시 돌리지 않아도 공백이 없다. 조건이 실제로 지켜졌는지는 main push의 게이트 잡이 매번 확인한다(4.3). Free private repo는 branch protection과 merge queue를 쓸 수 없어 이 스크립트가 유일한 강제 수단이다.
+
+squash merge로 바꾸는 조건(2026-10-19 결정, 그 전까지 3-way merge 유지): 외부 기여자나 팀원이 늘어 PR 안 커밋 규율을 강제하기 어려울 때, release-please 갱신으로 본문 우회가 깨질 때(dependabot이 release-please 버전을 올리는 PR이 확인 시점), 사용자 공개 릴리즈 노트가 PR 단위여야 할 때. 바꾸면 main gate 판정(4.3 조건 1, 2), `pr-merge.sh`의 `--merge`, PR 제목 lint, TDD 커밋 순서 규칙을 함께 고친다.
 
 dependabot PR은 grouped update로 받고, 여러 개가 열리면 하나 merge 후 나머지는 `@dependabot rebase` 뒤 merge한다.
 
