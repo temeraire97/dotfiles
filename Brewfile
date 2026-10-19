@@ -1,3 +1,4 @@
+tap "jetbrains/utils"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
 # Manage your dotfiles across multiple diverse machines, securely
@@ -26,6 +27,8 @@ brew "zoxide"
 brew "zsh-autosuggestions"
 # Feature-rich syntax highlighting for Zsh
 brew "zsh-fast-syntax-highlighting"
+# Kotlin language server (JetBrains, Alpha)
+brew "jetbrains/utils/kotlin-lsp"
 # App to build and share containerised applications and microservices
 cask "docker-desktop"
 cask "font-pretendard"
