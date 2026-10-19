@@ -6,7 +6,8 @@
 #    CI가 검증한 적이 없으므로 중단). 실패나 미완료면 중단.
 #    체크가 하나도 없으면 등록 지연일 수 있어 한 번 더 조회한다. 그때도 없으면 변경 파일을 본다.
 #    문서(*.md, docs/**)만 바뀐 PR이면 "체크 없음"으로 통과하고, 그 밖의 파일이 있으면 중단한다.
-# 3) gh pr merge --merge --match-head-commit <head> 로 검사한 커밋만 merge.
+# 3) gh pr merge --merge --match-head-commit <head> 로 검사한 커밋만 merge. 본문은 `PR: <제목>`.
+#    제목이 type으로 시작하는 줄이 되면 release-please가 중복 항목으로 센다.
 # 이 조건이 지켜지면 merge commit 트리 = PR CI가 검사한 트리이므로 main push의 게이트 잡이 검증을 건너뛴다(SKILL.md 4.3).
 set -euo pipefail
 # macOS 기본 bash 3.2 호환 두 가지:
@@ -24,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-read -r HEAD BASE STATE < <(gh pr view "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json headRefOid,baseRefName,state -q '"\(.headRefOid) \(.baseRefName) \(.state)"')
+read -r HEAD BASE STATE TITLE < <(gh pr view "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --json headRefOid,baseRefName,state,title -q '"\(.headRefOid) \(.baseRefName) \(.state) \(.title)"')
 [ "$STATE" = "OPEN" ] || { echo "PR #$PR 상태가 $STATE. 중단." >&2; exit 1; }
 
 # PR head 커밋도 함께 받아 온다. 봇이 만든 브랜치(Release PR 등)는 로컬에 커밋이 없어서, base만 fetch하면
@@ -124,5 +125,5 @@ if [ -n "$PROBLEM" ]; then
   gh pr comment "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --body "체크 미통과 상태에서 merge(${PROBLEM}). 사유: $ALLOW_FAILED" >/dev/null
 fi
 
-gh pr merge "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --merge --match-head-commit "$HEAD"
+gh pr merge "$PR" ${REPO_ARGS[@]+"${REPO_ARGS[@]}"} --merge --match-head-commit "$HEAD" --body "PR: ${TITLE}"
 echo "merged PR #$PR at $HEAD (tree == PR CI tree)"
