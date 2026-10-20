@@ -13,6 +13,8 @@ brew "gh"
 brew "git"
 # Audit git repos for secrets
 brew "gitleaks"
+# Kotlin code formatter (Kotlin org, kotlinlang style in uwellnow)
+brew "ktfmt"
 # Simple terminal UI for git commands
 brew "lazygit"
 # Ambitious Vim-fork focused on extensibility and agility
